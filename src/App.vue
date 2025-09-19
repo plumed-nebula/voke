@@ -1,0 +1,495 @@
+<script setup>
+import TopBar from './components/TopBar.vue'
+import BBcodeEditor from './components/BBcodeEditor.vue'
+import SettingsPanel from './components/SettingsPanel.vue'
+import { ref, onMounted, watch } from 'vue'
+import { useSettings } from './composables/useSettings.js'
+import { saveToFile, readFromFile, selectFile, showFileNotification } from './utils/fileUtils.js'
+import { useTranslation } from './utils/i18n.js'
+
+const editorRef = ref(null)
+const content = ref('')
+
+// 国际化
+const { t } = useTranslation()
+
+// 使用设置管理系统
+const {
+  settings,
+  settingsVisible,
+  showSettings,
+  hideSettings,
+  saveSettings,
+  clearAllData,
+  setWithExpiry,
+  getWithExpiry,
+} = useSettings()
+
+// 从设置中获取当前状态
+const currentTheme = ref(settings.value.theme)
+const autoSaveEnabled = ref(settings.value.autoSaveEnabled)
+const currentLanguage = ref(settings.value.language)
+const saveStatus = ref('saved') // 'saved', 'saving', 'unsaved'
+
+// 自动保存相关
+let autoSaveTimer = null
+const AUTOSAVE_DELAY = ref(settings.value.autoSaveDelay) // 从设置获取延迟时间
+let isUpdatingContent = false // 防止watch循环的标志
+
+// 默认内容（多语言）
+const defaultContent = {
+  zh: `[b]欢迎使用BBCode编辑器！[/b]
+
+这是一个功能丰富的BBCode编辑器，支持以下特性：
+
+[size=16][color=blue]基本格式[/color][/size]
+• [b]粗体文本[/b]
+• [i]斜体文本[/i]
+• [u]下划线文本[/u]
+• [s]删除线文本[/s]
+
+[size=16][color=green]高级功能[/color][/size]
+• [color=red]彩色文本[/color]
+• [size=18]不同大小的文本[/size]
+• [url=https://github.com]GitHub 链接[/url]
+• [img]https://picsum.photos/300/200[/img]
+
+[quote]这是引用文本的示例[/quote]
+
+[code]console.log("这是代码块");[/code]
+
+尽情享受编辑的乐趣吧！`,
+  en: `[b]Welcome to the BBCode Editor![/b]
+
+This is a feature-rich BBCode editor that supports:
+
+[size=16][color=blue]Basic Formatting[/color][/size]
+• [b]Bold text[/b]
+• [i]Italic text[/i]
+• [u]Underlined text[/u]
+• [s]Strikethrough text[/s]
+
+[size=16][color=green]Advanced Features[/color][/size]
+• [color=red]Colored text[/color]
+• [size=18]Different text sizes[/size]
+• [url=https://github.com]GitHub Link[/url]
+• [img]https://picsum.photos/300/200[/img]
+
+[quote]This is an example of quoted text[/quote]
+
+[code]console.log("This is a code block");[/code]
+
+Enjoy editing!`,
+}
+
+// 统一的内容获取逻辑
+const getInitialContent = (language, useAutoSave = autoSaveEnabled.value) => {
+  if (useAutoSave) {
+    // 如果启用自动保存，优先使用保存的内容
+    const savedContent = getWithExpiry('editorContent')
+    if (savedContent && savedContent.trim()) {
+      return savedContent
+    }
+  }
+  // 否则使用默认内容
+  return defaultContent[language]
+}
+
+const initializeApp = () => {
+  // 设置系统会自动加载设置，我们只需要同步到本地变量
+  currentTheme.value = settings.value.theme
+  autoSaveEnabled.value = settings.value.autoSaveEnabled
+  currentLanguage.value = settings.value.language
+  AUTOSAVE_DELAY.value = settings.value.autoSaveDelay
+
+  // 使用统一的内容获取逻辑
+  const initialContent = getInitialContent(settings.value.language, settings.value.autoSaveEnabled)
+
+  // 设置内容时防止触发watch
+  isUpdatingContent = true
+  content.value = initialContent
+  saveStatus.value = 'saved'
+  isUpdatingContent = false
+
+  // 应用主题
+  applyTheme(currentTheme.value)
+}
+
+const applyTheme = (theme) => {
+  document.documentElement.setAttribute('data-theme', theme)
+}
+
+const toggleTheme = () => {
+  currentTheme.value = currentTheme.value === 'light' ? 'dark' : 'light'
+  // 更新设置系统
+  saveSettings({ theme: currentTheme.value })
+  applyTheme(currentTheme.value)
+}
+
+const toggleAutoSave = () => {
+  autoSaveEnabled.value = !autoSaveEnabled.value
+  // 更新设置系统
+  saveSettings({ autoSaveEnabled: autoSaveEnabled.value })
+
+  if (!autoSaveEnabled.value) {
+    // 如果关闭自动保存，清理定时器和保存的内容
+    if (autoSaveTimer) {
+      clearTimeout(autoSaveTimer)
+      autoSaveTimer = null
+    }
+    localStorage.removeItem('editorContent')
+    saveStatus.value = 'saved'
+  } else {
+    // 如果开启自动保存，检查内容是否非空后再保存
+    if (content.value && content.value.trim() !== '') {
+      saveStatus.value = 'saving'
+      setWithExpiry('editorContent', content.value, settings.value.storageExpiry)
+      saveStatus.value = 'saved'
+    } else {
+      saveStatus.value = 'saved' // 空内容视为已保存状态
+    }
+  }
+}
+
+const changeLanguage = (language) => {
+  const wasAutoSaveEnabled = autoSaveEnabled.value
+
+  currentLanguage.value = language
+  // 更新设置系统
+  saveSettings({ language: language })
+
+  // 发送语言变化事件给编辑器
+  window.dispatchEvent(
+    new CustomEvent('language-changed', {
+      detail: { language: language },
+    }),
+  )
+
+  // 内容切换逻辑
+  let shouldUseDefaultContent = false
+
+  if (!wasAutoSaveEnabled) {
+    // 未启用自动保存时，总是使用默认内容
+    shouldUseDefaultContent = true
+  } else {
+    // 启用自动保存时，检查是否有保存的内容
+    const savedContent = getWithExpiry('editorContent')
+    if (!savedContent || savedContent.trim() === '') {
+      shouldUseDefaultContent = true
+    }
+    // 如果有保存的内容，保持现有内容不变
+  }
+
+  if (shouldUseDefaultContent) {
+    const newContent = getInitialContent(language, false) // 强制使用默认内容
+    isUpdatingContent = true
+    content.value = newContent
+    isUpdatingContent = false
+
+    // 确保编辑器也更新内容
+    setTimeout(() => {
+      if (editorRef.value && editorRef.value.updateContent) {
+        editorRef.value.updateContent(newContent)
+      }
+    }, 200) // 给编辑器重建留足时间
+  }
+}
+
+/**
+ * 新建文档
+ */
+const handleNewDocument = async () => {
+  // 无论任何情况都弹出确认对话框，提醒用户可能有未保存到本地文件的内容
+  const confirmed = window.confirm(`${t('unsavedChangesWarning')}\n\n${t('continueNewDocument')}`)
+
+  if (!confirmed) {
+    return // 用户取消
+  }
+
+  // 清空内容
+  isUpdatingContent = true
+  content.value = ''
+  isUpdatingContent = false
+
+  // 如果开启了自动保存，清除保存的内容
+  if (autoSaveEnabled.value) {
+    localStorage.removeItem('editorContent')
+    if (autoSaveTimer) {
+      clearTimeout(autoSaveTimer)
+      autoSaveTimer = null
+    }
+  }
+
+  // 更新保存状态
+  saveStatus.value = 'saved'
+
+  // 同步到编辑器
+  if (editorRef.value && editorRef.value.updateContent) {
+    editorRef.value.updateContent('')
+  }
+
+  showFileNotification(t('newDocumentCreated') || '已创建新文档', 'success')
+}
+
+/**
+ * 保存内容到文件
+ */
+const handleSaveToFile = async () => {
+  if (!content.value || content.value.trim() === '') {
+    showFileNotification('没有内容可保存', 'error')
+    return
+  }
+
+  const result = saveToFile(content.value)
+  if (result.success) {
+    showFileNotification(`文件已保存为: ${result.filename}`, 'success')
+  } else {
+    showFileNotification(`保存失败: ${result.error}`, 'error')
+  }
+}
+
+/**
+ * 从文件加载内容
+ */
+const handleLoadFromFile = async () => {
+  try {
+    const files = await selectFile()
+    if (!files || files.length === 0) {
+      return // 用户取消选择
+    }
+
+    const file = files[0]
+    const result = await readFromFile(file)
+
+    if (result.success) {
+      isUpdatingContent = true
+      content.value = result.content
+      isUpdatingContent = false
+
+      // 同步到编辑器
+      if (editorRef.value && editorRef.value.updateContent) {
+        editorRef.value.updateContent(result.content)
+      }
+      showFileNotification(`已从文件加载内容: ${file.name}`, 'success')
+
+      // 如果启用了自动保存，保存加载的内容
+      if (autoSaveEnabled.value) {
+        setWithExpiry('editorContent', result.content, settings.value.storageExpiry)
+        saveStatus.value = 'saved'
+      }
+    } else {
+      showFileNotification(`加载失败: ${result.error}`, 'error')
+    }
+  } catch (error) {
+    showFileNotification(`加载文件时出错: ${error.message}`, 'error')
+  }
+}
+
+/**
+ * 打开设置面板
+ */
+const handleOpenSettings = () => {
+  showSettings()
+}
+
+/**
+ * 保存设置
+ */
+const handleSaveSettings = (newSettings) => {
+  const result = saveSettings(newSettings)
+  if (result.success) {
+    // 同步设置到本地变量
+    currentTheme.value = settings.value.theme
+    autoSaveEnabled.value = settings.value.autoSaveEnabled
+    currentLanguage.value = settings.value.language
+    AUTOSAVE_DELAY.value = settings.value.autoSaveDelay
+
+    // 应用主题
+    applyTheme(currentTheme.value)
+
+    showFileNotification('设置已保存', 'success')
+  } else {
+    showFileNotification(`设置保存失败: ${result.error}`, 'error')
+  }
+}
+
+/**
+ * 清除所有本地数据
+ */
+const handleClearData = () => {
+  const result = clearAllData()
+  if (result.success) {
+    // 重置界面状态
+    isUpdatingContent = true
+    content.value = defaultContent[settings.value.language]
+    saveStatus.value = 'saved'
+    isUpdatingContent = false
+
+    // 同步到编辑器
+    if (editorRef.value && editorRef.value.updateContent) {
+      editorRef.value.updateContent(content.value)
+    }
+
+    showFileNotification('所有本地数据已清除', 'success')
+  } else {
+    showFileNotification(`清除数据失败: ${result.error}`, 'error')
+  }
+}
+
+// 改进的自动保存逻辑
+const handleContentChange = (newContent) => {
+  // 如果是程序内部更新内容，跳过自动保存逻辑
+  if (isUpdatingContent) {
+    return
+  }
+
+  if (autoSaveEnabled.value && newContent !== undefined) {
+    // 检查内容是否为空
+    if (!newContent || newContent.trim() === '') {
+      // 内容为空时，清除定时器和已保存的内容
+      if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer)
+      }
+      // 清除localStorage中的内容以保持一致性
+      localStorage.removeItem('editorContent')
+      saveStatus.value = 'saved' // 空内容视为已保存状态
+      return
+    }
+
+    // 标记为未保存状态
+    saveStatus.value = 'unsaved'
+
+    // 清除之前的定时器
+    if (autoSaveTimer) {
+      clearTimeout(autoSaveTimer)
+    }
+
+    // 设置新的定时器，延迟保存
+    autoSaveTimer = setTimeout(() => {
+      saveStatus.value = 'saving'
+      setWithExpiry('editorContent', newContent, settings.value.storageExpiry)
+      saveStatus.value = 'saved'
+    }, AUTOSAVE_DELAY.value)
+  }
+}
+
+// ===== 图片上传处理 =====
+
+/**
+ * 处理图片上传开始
+ * @param {Array} files - 上传的文件列表
+ */
+const handleImageUploadStart = (files) => {
+  console.log(
+    '开始上传图片:',
+    files.map((f) => f.name),
+  )
+  // 可以在这里显示上传提示
+}
+
+/**
+ * 处理图片上传成功
+ * @param {Object} result - 上传结果
+ */
+const handleImageUploadSuccess = (result) => {
+  console.log('图片上传成功:', result)
+  // 可以在这里显示成功提示
+}
+
+/**
+ * 处理图片上传错误
+ * @param {Error} error - 错误对象
+ */
+const handleImageUploadError = (error) => {
+  console.error('图片上传失败:', error)
+  // 可以在这里显示错误提示
+}
+
+/**
+ * 处理图片插入成功
+ * @param {Object} data - 插入数据
+ */
+const handleImageInserted = (data) => {
+  console.log('图片已插入:', data)
+  // 图片插入后触发内容变化检测，进行自动保存
+  if (autoSaveEnabled.value) {
+    handleContentChange(content.value)
+  }
+}
+
+// 监听内容变化进行自动保存
+watch(content, handleContentChange, { flush: 'post' })
+
+onMounted(() => {
+  initializeApp()
+})
+</script>
+
+<template>
+  <div class="app">
+    <TopBar
+      :save-status="saveStatus"
+      :auto-save-enabled="autoSaveEnabled"
+      :current-language="currentLanguage"
+      @toggle-theme="toggleTheme"
+      @toggle-auto-save="toggleAutoSave"
+      @change-language="changeLanguage"
+      @save-to-file="handleSaveToFile"
+      @load-from-file="handleLoadFromFile"
+      @new-document="handleNewDocument"
+      @open-settings="handleOpenSettings"
+    />
+    <main class="page">
+      <BBcodeEditor
+        ref="editorRef"
+        v-model:value="content"
+        :options="{ format: 'bbcode' }"
+        :image-host="settings.imageHost"
+        :image-api-key="settings.imageHost === 'freeimage' ? settings.freeimageApiKey : ''"
+        :use-direct-image-link="true"
+        :auto-newline-after-image="settings.autoNewlineAfterImage"
+        :image-alignment="settings.imageAlignment"
+        :use-align-param-on-copy="settings.useAlignParamOnCopy"
+        @upload-start="handleImageUploadStart"
+        @upload-success="handleImageUploadSuccess"
+        @upload-error="handleImageUploadError"
+        @image-inserted="handleImageInserted"
+      />
+    </main>
+
+    <!-- 设置面板 -->
+    <SettingsPanel
+      :visible="settingsVisible"
+      :settings="settings"
+      :current-theme="currentTheme"
+      :current-language="currentLanguage"
+      :auto-save-enabled="autoSaveEnabled"
+      @close="hideSettings"
+      @save="handleSaveSettings"
+      @clear-data="handleClearData"
+    />
+  </div>
+</template>
+
+<style scoped>
+.app {
+  height: 100vh;
+  background: var(--bg-primary);
+  width: 100%;
+  overflow: hidden !important; /* 防止页面滚动 */
+  display: flex !important ;
+  flex-direction: column !important;
+}
+
+.page {
+  flex: 1;
+  background: var(--bg-primary);
+  width: 100%;
+  padding-top: calc(var(--topbar-height, 84px) + 20px); /* 顶栏高度 + 额外间距 */
+  padding-bottom: 2rem; /* 底部留白 */
+  padding-left: 20px; /* 左右增加间距 */
+  padding-right: 20px;
+  box-sizing: border-box;
+  overflow: hidden; /* 确保内容不溢出 */
+}
+</style>

@@ -1,0 +1,276 @@
+/* 统一主题配置系统 - 优化版本 */
+
+/* ===== CSS 自定义属性系统 ===== */
+/* 基础颜色变量 - 更好的命名和分组 */
+:root {
+  /* === 核心主题色彩 === */
+  --brand-primary: #8b7355;
+  --brand-secondary: #a68b5b;
+  --brand-accent: #5a4f3a;
+  --brand-gradient: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+
+  /* === 背景色彩系统 === */
+  --bg-primary: #faf8f5; /* 主背景 */
+  --bg-secondary: #f5f2ee; /* 次级背景 */
+  --bg-surface: #ffffff; /* 表面背景 */
+  --bg-overlay: rgba(250, 248, 245, 0.9); /* 遮罩背景 */
+
+  /* === 文本色彩系统 === */
+  --text-primary: #2c2016; /* 主文本 */
+  --text-secondary: #5a4f3a; /* 次级文本 */
+  --text-muted: #8b7d6b; /* 弱化文本 */
+  --text-inverse: #ffffff; /* 反色文本 */
+
+  /* === 边框色彩系统 === */
+  --border-primary: #e6ddd4; /* 主边框 */
+  --border-secondary: #d4c7b8; /* 次级边框 */
+  --border-focus: var(--brand-primary); /* 焦点边框 */
+
+  /* === 阴影系统 === */
+  --shadow-xs: 0 1px 2px rgba(44, 32, 22, 0.05);
+  --shadow-sm: 0 1px 3px rgba(44, 32, 22, 0.08);
+  --shadow-md: 0 4px 6px rgba(44, 32, 22, 0.1);
+  --shadow-lg: 0 10px 15px rgba(44, 32, 22, 0.15);
+  --shadow-focus: 0 0 0 2px rgba(139, 115, 85, 0.3);
+
+  /* === 状态颜色 === */
+  --success: #28a745;
+  --warning: #ffc107;
+  --error: #dc3545;
+  --info: #17a2b8;
+
+  /* === 状态颜色扩展（按钮背景等） === */
+  --success-bg: rgba(40, 167, 69, 0.1);
+  --success-bg-hover: rgba(40, 167, 69, 0.2);
+  --success-border: rgba(40, 167, 69, 0.3);
+  --success-border-hover: rgba(40, 167, 69, 0.5);
+  --success-text: #28a745;
+
+  --info-bg: rgba(23, 162, 184, 0.1);
+  --info-bg-hover: rgba(23, 162, 184, 0.2);
+  --info-border: rgba(23, 162, 184, 0.3);
+  --info-border-hover: rgba(23, 162, 184, 0.5);
+  --info-text: #17a2b8;
+
+  /* === 交互状态 === */
+  --hover-opacity: 0.8;
+  --active-opacity: 0.9;
+  --disabled-opacity: 0.5;
+
+  /* === 编辑器专用变量 === */
+  --editor-bg: var(--bg-surface);
+  --editor-border: var(--border-primary);
+  --editor-toolbar-bg: var(--bg-secondary);
+  --editor-toolbar-border: var(--border-primary);
+  --editor-text: var(--text-primary);
+  --editor-button-hover: rgba(139, 115, 85, 0.1);
+  --editor-button-active: var(--brand-primary);
+
+  /* === 顶栏专用变量 === */
+  --topbar-bg: var(--bg-overlay);
+  --topbar-border: rgba(230, 221, 212, 0.8);
+  --topbar-text: var(--text-primary);
+  --topbar-shadow: var(--shadow-sm);
+
+  /* === 按钮专用变量 === */
+  --button-bg: rgba(255, 255, 255, 0.8);
+  --button-border: rgba(139, 115, 85, 0.2);
+  --button-text: var(--text-secondary);
+  --button-hover-bg: rgba(139, 115, 85, 0.1);
+  --button-hover-border: rgba(139, 115, 85, 0.4);
+  --button-shadow: rgba(139, 115, 85, 0.2);
+
+  /* === 设计系统 === */
+  --font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell',
+    'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Consolas', 'Courier New', monospace;
+
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+
+  --duration-fast: 0.1s;
+  --duration-normal: 0.2s;
+  --duration-slow: 0.3s;
+  --timing-ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ===== 深色主题 ===== */
+[data-theme='dark'] {
+  /* === 核心主题色彩 === */
+  --brand-primary: #58a6ff;
+  --brand-secondary: #79c0ff;
+  --brand-accent: #c9d1d9;
+  --brand-gradient: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+
+  /* === 背景色彩系统 === */
+  --bg-primary: #0d1117;
+  --bg-secondary: #161b22;
+  --bg-surface: #21262d;
+  --bg-overlay: rgba(13, 17, 23, 0.95);
+
+  /* === 文本色彩系统 - 提高可读性 === */
+  --text-primary: #f0f6fc;
+  --text-secondary: #e6edf3; /* 提高对比度 */
+  --text-muted: #9ca3af; /* 提高可读性 */
+  --text-inverse: #0d1117;
+
+  /* === 边框色彩系统 === */
+  --border-primary: #30363d;
+  --border-secondary: #484f58;
+  --border-focus: var(--brand-primary);
+
+  /* === 阴影系统 === */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.6);
+  --shadow-focus: 0 0 0 2px rgba(88, 166, 255, 0.4);
+
+  /* === 编辑器专用变量 === */
+  --editor-bg: var(--bg-surface);
+  --editor-border: var(--border-primary);
+  --editor-toolbar-bg: var(--bg-secondary);
+  --editor-toolbar-border: var(--border-primary);
+  --editor-text: var(--text-primary);
+  --editor-button-hover: rgba(88, 166, 255, 0.15);
+  --editor-button-active: var(--brand-primary);
+
+  /* === 顶栏专用变量 === */
+  --topbar-bg: var(--bg-overlay);
+  --topbar-border: rgba(48, 54, 61, 0.8);
+  --topbar-text: var(--text-primary);
+  --topbar-shadow: var(--shadow-md);
+
+  /* === 按钮专用变量 === */
+  --button-bg: rgba(33, 38, 45, 0.8);
+  --button-border: rgba(72, 79, 88, 0.4);
+  --button-text: var(--text-secondary);
+  --button-hover-bg: rgba(72, 79, 88, 0.3);
+  --button-hover-border: rgba(88, 166, 255, 0.5);
+  --button-shadow: rgba(88, 166, 255, 0.2);
+
+  /* === 状态颜色扩展（暗色主题） === */
+  --success-bg: rgba(46, 160, 67, 0.15);
+  --success-bg-hover: rgba(46, 160, 67, 0.25);
+  --success-border: rgba(46, 160, 67, 0.4);
+  --success-border-hover: rgba(46, 160, 67, 0.6);
+  --success-text: #2ea043;
+
+  --info-bg: rgba(79, 172, 254, 0.15);
+  --info-bg-hover: rgba(79, 172, 254, 0.25);
+  --info-border: rgba(79, 172, 254, 0.4);
+  --info-border-hover: rgba(79, 172, 254, 0.6);
+  --info-text: #4facfe;
+}
+
+/* ===== 全局样式重置和基础设置 ===== */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  line-height: 1.15;
+  -webkit-text-size-adjust: 100%;
+  background: var(--bg-primary);
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-family);
+  font-size: 14px;
+  line-height: 1.6;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition:
+    background-color var(--duration-slow) var(--timing-ease),
+    color var(--duration-slow) var(--timing-ease);
+  height: 100%;
+  overflow: hidden; /* 防止body滚动 */
+}
+
+/* 移除#app样式，让App.vue组件完全控制布局 */
+
+/* ===== 优化的主题切换动画 ===== */
+.theme-transition,
+.theme-transition * {
+  transition:
+    background-color var(--duration-slow) var(--timing-ease),
+    border-color var(--duration-slow) var(--timing-ease),
+    color var(--duration-slow) var(--timing-ease),
+    box-shadow var(--duration-slow) var(--timing-ease),
+    fill var(--duration-slow) var(--timing-ease),
+    stroke var(--duration-slow) var(--timing-ease) !important;
+}
+
+/* ===== 可访问性支持 ===== */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  :root {
+    --duration-fast: 0.01ms;
+    --duration-normal: 0.01ms;
+    --duration-slow: 0.01ms;
+  }
+}
+
+/* ===== 高对比度支持 ===== */
+@media (prefers-contrast: high) {
+  :root {
+    --border-primary: #999999;
+    --border-secondary: #666666;
+  }
+
+  [data-theme='dark'] {
+    --border-primary: #999999;
+    --border-secondary: #cccccc;
+  }
+}
+
+/* ===== 响应式断点支持 ===== */
+@media (max-width: 768px) {
+  :root {
+    --space-xs: 2px;
+    --space-sm: 4px;
+    --space-md: 8px;
+    --space-lg: 12px;
+    --space-xl: 16px;
+    --space-2xl: 20px;
+  }
+}
+
+/* ===== 打印样式支持 ===== */
+@media print {
+  :root {
+    --bg-primary: white;
+    --bg-secondary: white;
+    --bg-surface: white;
+    --text-primary: black;
+    --text-secondary: #333333;
+    --text-muted: #666666;
+    --border-primary: #cccccc;
+    --shadow-xs: none;
+    --shadow-sm: none;
+    --shadow-md: none;
+    --shadow-lg: none;
+  }
+}

@@ -1,0 +1,1356 @@
+/* SCEditor 完整样式 - 工具栏 + 内容区域 (优化版本) */
+
+/* ===== 工具栏样式 ===== */
+
+/* 编辑器容器重置 */
+.sceditor-container {
+  background: var(--editor-bg) !important;
+  border: 1px solid var(--editor-border) !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: var(--shadow-md) !important;
+  font-family: var(--font-family) !important;
+  overflow: hidden !important;
+  transition: border-color var(--duration-normal) var(--timing-ease) !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.sceditor-container:focus-within {
+  border-color: var(--border-focus) !important;
+  box-shadow: var(--shadow-focus), var(--shadow-md) !important;
+}
+
+/* 确保编辑器内容区域正确扩展 */
+.sceditor-container .sceditor-resize-grip {
+  display: none !important;
+}
+
+/* 暗色模式特殊处理 */
+[data-theme='dark'] .sceditor-container {
+  border-color: var(--border-primary) !important;
+  background: var(--editor-bg) !important;
+}
+
+/* 工具栏样式 */
+.sceditor-toolbar {
+  background: var(--editor-toolbar-bg) !important;
+  border: none !important;
+  border-bottom: 1px solid var(--editor-toolbar-border) !important;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0 !important;
+  padding: var(--space-sm) !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: var(--space-xs) !important;
+  min-height: 40px !important;
+  /* 移除 max-height 限制，允许工具栏自动扩展高度 */
+  /* max-height: 40px !important; */
+  overflow: visible !important; /* 改为 visible，允许内容显示 */
+  flex-shrink: 0 !important; /* 防止工具栏收缩 */
+  /* 添加行间距，确保换行时有足够空间 */
+  row-gap: var(--space-sm) !important;
+}
+
+/* 工具栏分组 */
+.sceditor-group {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: var(--space-xs) !important;
+  margin: 0 var(--space-sm) 0 0 !important;
+  box-shadow: none !important;
+  position: relative !important;
+}
+
+.sceditor-group:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  right: calc(var(--space-sm) / -2);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 20px;
+  background: var(--border-primary);
+  opacity: 0.5;
+}
+
+/* 工具栏按钮 */
+.sceditor-button {
+  width: 26px !important;
+  height: 26px !important;
+  border: 1px solid transparent !important;
+  border-radius: var(--radius-xs) !important;
+  background: transparent !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 1px !important;
+  padding: 0 !important;
+  transition: all var(--duration-fast) var(--timing-ease) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.sceditor-button:hover {
+  background: var(--editor-button-hover) !important;
+  border-color: var(--border-secondary) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.sceditor-button:active,
+.sceditor-button.active {
+  background: var(--editor-button-active) !important;
+  border-color: var(--border-focus) !important;
+  box-shadow: inset var(--shadow-xs) !important;
+  color: var(--text-inverse) !important;
+}
+
+/* 禁用状态 */
+.sceditor-button.disabled,
+.sceditor-button:disabled {
+  opacity: var(--disabled-opacity) !important;
+  cursor: not-allowed !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.sceditor-button.disabled:hover,
+.sceditor-button:disabled:hover {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* 隐藏原始按钮内容 */
+.sceditor-button div {
+  display: none !important;
+}
+
+/* 按钮图标 */
+.sceditor-button::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  display: block;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  filter: brightness(0) saturate(100%) invert(20%) sepia(10%) saturate(1000%) hue-rotate(190deg)
+    brightness(90%) contrast(95%);
+  transition: filter var(--duration-fast) var(--timing-ease);
+}
+
+.sceditor-button:hover::before {
+  filter: brightness(0) saturate(100%) invert(25%) sepia(25%) saturate(2048%) hue-rotate(190deg)
+    brightness(85%) contrast(90%);
+}
+
+.sceditor-button.active::before {
+  filter: brightness(0) saturate(100%) invert(100%);
+}
+
+[data-theme='dark'] .sceditor-button::before {
+  filter: brightness(0) saturate(100%) invert(80%);
+}
+
+[data-theme='dark'] .sceditor-button:hover::before {
+  filter: brightness(0) saturate(100%) invert(70%) sepia(25%) saturate(2048%) hue-rotate(190deg)
+    brightness(105%) contrast(95%);
+}
+
+[data-theme='dark'] .sceditor-button.active::before {
+  filter: brightness(0) saturate(100%) invert(100%);
+}
+
+/* === 具体按钮图标定义 === */
+.sceditor-button-bold::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M15.6 10.79c.97-.67 1.65-1.77 1.65-2.79 0-2.26-1.75-4-4-4H7v14h7.04c2.09 0 3.71-1.7 3.71-3.79 0-1.52-.86-2.82-2.15-3.42zM10 6.5h3c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-3v-3zm3.5 9H10v-3h3.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5z'/%3E%3C/svg%3E");
+}
+
+.sceditor-button-italic::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M10 4v3h2.21l-3.42 8H6v3h8v-3h-2.21l3.42-8H18V4h-8z'/%3E%3C/svg%3E");
+}
+
+.sceditor-button-underline::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 17c3.31 0 6-2.69 6-6V3h-2.5v8c0 1.93-1.57 3.5-3.5 3.5S8.5 12.93 8.5 11V3H6v8c0 3.31 2.69 6 6 6zm-7 2v2h14v-2H5z'/%3E%3C/svg%3E");
+}
+
+.sceditor-button-strike::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M10 19h4v-3h-4v3zM5 4v3h5v3h4V7h5V4H5zM3 14h18v-2H3v2z'/%3E%3C/svg%3E");
+}
+
+.sceditor-button-left::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M15 15H3v2h12v-2zm0-8H3v2h12V7zM3 13h18v-2H3v2zm0 8h18v-2H3v2zM3 3v2h18V3H3z'/%3E%3C/svg%3E");
+}
+
+.sceditor-button-center::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M7 15v2h10v-2H7zm-4 6h18v-2H3v2zm0-8h18v-2H3v2zm4-6v2h10V7H7zM3 3v2h18V3H3z'/%3E%3C/svg%3E");
+}
+
+.sceditor-button-right::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M3 21h18v-2H3v2zm6-4h12v-2H9v2zm-6-4h18v-2H3v2zm6-4h12V7H9v2zM3 3v2h18V3H3z'/%3E%3C/svg%3E");
+}
+
+.sceditor-button-justify::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M3 21h18v-2H3v2zm0-4h18v-2H3v2zm0-4h18v-2H3v2zm0-4h18V7H3v2zm0-6v2h18V3H3z'/%3E%3C/svg%3E");
+}
+
+.sceditor-button-font::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M9.93 13.5h4.14L12 7.98 9.93 13.5zM20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-4.05 16.5l-1.14-3H9.17l-1.12 3H5.96l5.11-13h1.86l5.11 13h-2.09z'/%3E%3C/svg%3E");
+}
+
+.sceditor-button-size::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M9 4v3h5v12h3V7h5V4H9zm-6 8h3v7h3v-7h3V9H3v3z'/%3E%3C/svg%3E");
+}
+
+.sceditor-button-color::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z'/%3E%3C/svg%3E");
+}
+
+.sceditor-button-removeformat::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M3.27 5L2 6.27l6.97 6.97L6.5 19h3l1.57-3.66L16.73 21l1.27-1.27L3.27 5zM10 5h4v3h-3.18l-2-2H10z'/%3E%3C/svg%3E");
+}
+
+.sceditor-button-bulletlist::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M4 10.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zm0-6c-.83 0-1.5.67-1.5 1.5S3.17 7.5 4 7.5 5.5 6.83 5.5 6 4.83 4.5 4 4.5zm0 12c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zM7 19h14v-2H7v2zm0-6h14v-2H7v2zm0-8v2h14V5H7z'/%3E%3C/svg%3E");
+}
+
+.sceditor-button-orderedlist::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M2 17h2v.5H3v1h1v.5H2v1h3v-4H2v1zm1-9h1V4H2v1h1v3zm-1 3h1.8L2 13.1v.9h3v-1H3.2L5 10.9V10H2v1zm5-6v2h14V5H7zm0 14h14v-2H7v2zm0-6h14v-2H7v2z'/%3E%3C/svg%3E");
+}
+
+.sceditor-button-quote::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z'/%3E%3C/svg%3E");
+}
+
+.sceditor-button-code::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0L19.2 12l-4.6-4.6L16 6l6 6-6 6-1.4-1.4z'/%3E%3C/svg%3E");
+}
+
+.sceditor-button-image::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E");
+}
+
+.sceditor-button-link::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z'/%3E%3C/svg%3E");
+}
+
+.sceditor-button-unlink::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M17 7h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1 0 1.43-.98 2.63-2.31 2.96l1.46 1.46C20.88 15.61 22 13.95 22 12c0-2.76-2.24-5-5-5zm-1 4h-2.19l2 2H16zM2 4.27l3.11 3.11C3.29 8.12 2 9.91 2 12c0 2.76 2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1 0-1.59 1.21-2.9 2.76-3.07L8.73 11H8v2h2.73L13 15.27V17h1.73l4.01 4.01 1.41-1.41L3.41 2.86 2 4.27z'/%3E%3C/svg%3E");
+}
+
+.sceditor-button-source::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 5-5 1.41 1.41L7.83 12l3.58 3.59L10 17zm4 0l-1.41-1.41L16.17 12l-3.58-3.59L14 7l5 5-5 5z'/%3E%3C/svg%3E");
+}
+
+.sceditor-button-maximize::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z'/%3E%3C/svg%3E");
+}
+
+.sceditor-button-formatAlignment::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M8 3v2h2.5l-2.5 7h2l2.5-7H15V3H8zM5 17v2h2.5l-.5-2H5zm8.5 0L12 19h2.5l1.5-2h-2.5zm-3.25-2h2.5l.5-2h-3.5l.5 2z'/%3E%3C/svg%3E");
+}
+
+.sceditor-button-export::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z'/%3E%3C/svg%3E");
+}
+
+/* ===== 下拉框样式 ===== */
+
+/* 下拉框基础样式 - 让JavaScript控制定位 */
+.sceditor-dropdown {
+  position: absolute !important;
+  background: var(--editor-bg) !important;
+  border: 1px solid var(--editor-border) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-lg) !important;
+  z-index: 2000 !important;
+  min-width: 120px !important;
+  max-width: 280px !important;
+  max-height: 300px !important;
+  overflow-y: auto !important;
+  padding: var(--space-xs) 0 !important;
+  font-family: var(--font-family) !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+  /* 默认隐藏下拉框，防止闪烁 */
+  visibility: hidden !important;
+  opacity: 0 !important;
+  /* 添加过渡效果，让显示/隐藏更平滑 */
+  transition:
+    opacity 0.15s ease,
+    visibility 0.15s ease !important;
+}
+
+/* 当JavaScript计算好位置后，通过这个类来显示下拉框 */
+.sceditor-dropdown.positioned {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* 清除所有可能的内联样式干扰，但不设置具体位置 */
+.sceditor-dropdown[style*='top'],
+.sceditor-dropdown[style*='left'],
+.sceditor-dropdown[style*='margin'],
+.sceditor-font-picker[style],
+.sceditor-size-picker[style],
+.sceditor-color-picker[style] {
+  /* JavaScript将动态设置位置，这里只确保基础样式 */
+  position: absolute !important;
+  z-index: 2000 !important;
+}
+
+/* 下拉框选项 */
+.sceditor-dropdown a:not(.sceditor-color-option),
+.sceditor-dropdown div {
+  display: block !important;
+  padding: var(--space-sm) var(--space-md) !important;
+  text-decoration: none !important;
+  color: var(--editor-text) !important;
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: background-color var(--duration-fast) var(--timing-ease) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+}
+
+/* 颜色选项特殊样式 - 不覆盖背景色 */
+.sceditor-dropdown a.sceditor-color-option {
+  display: inline-block !important;
+  padding: 0 !important;
+  text-decoration: none !important;
+  border: 2px solid var(--border-primary) !important;
+  border-radius: var(--radius-lg) !important;
+  cursor: pointer !important;
+  width: 32px !important;
+  height: 32px !important;
+  margin: 6px !important;
+  box-shadow: var(--shadow-sm) !important;
+  transition: all var(--duration-fast) var(--timing-ease) !important;
+  position: relative !important;
+  /* 不设置background，让内联样式生效 */
+}
+
+/* 确保颜色选项的悬停效果 */
+.sceditor-dropdown a.sceditor-color-option:hover {
+  border-color: var(--border-focus) !important;
+  box-shadow: var(--shadow-md) !important;
+  transform: scale(1.1) !important;
+  z-index: 10 !important;
+}
+
+.sceditor-dropdown a:not(.sceditor-color-option):hover,
+.sceditor-dropdown div:hover {
+  background: var(--editor-button-hover) !important;
+}
+
+/* 下拉框中的输入框和按钮样式 */
+.sceditor-dropdown input[type='text'],
+.sceditor-dropdown input[type='url'],
+.sceditor-dropdown input[type='email'] {
+  width: 100% !important;
+  padding: var(--space-sm) !important;
+  border: 1px solid var(--editor-border) !important;
+  border-radius: var(--radius-sm) !important;
+  background: var(--editor-bg) !important;
+  color: var(--editor-text) !important;
+  font-family: var(--font-family) !important;
+  font-size: 13px !important;
+  margin: var(--space-xs) 0 !important;
+  transition: border-color var(--duration-fast) var(--timing-ease) !important;
+  box-sizing: border-box !important;
+}
+
+.sceditor-dropdown input[type='text']:focus,
+.sceditor-dropdown input[type='url']:focus,
+.sceditor-dropdown input[type='email']:focus {
+  outline: none !important;
+  border-color: var(--border-focus) !important;
+  box-shadow: var(--shadow-focus) !important;
+}
+
+.sceditor-dropdown input[type='button'],
+.sceditor-dropdown button,
+.sceditor-dropdown .button {
+  padding: var(--space-sm) var(--space-md) !important;
+  margin: var(--space-xs) var(--space-xs) var(--space-xs) 0 !important;
+  border: 1px solid var(--editor-border) !important;
+  border-radius: var(--radius-sm) !important;
+  background: var(--button-bg) !important;
+  color: var(--button-text) !important;
+  font-family: var(--font-family) !important;
+  font-size: 13px !important;
+  cursor: pointer !important;
+  transition: all var(--duration-fast) var(--timing-ease) !important;
+  display: inline-block !important;
+}
+
+.sceditor-dropdown input[type='button']:hover,
+.sceditor-dropdown button:hover,
+.sceditor-dropdown .button:hover {
+  background: var(--button-hover-bg) !important;
+  border-color: var(--button-hover-border) !important;
+}
+
+.sceditor-dropdown input[type='button']:active,
+.sceditor-dropdown button:active,
+.sceditor-dropdown .button:active {
+  transform: translateY(1px) !important;
+}
+
+.sceditor-dropdown label {
+  display: block !important;
+  margin: var(--space-xs) 0 var(--space-xs) 0 !important;
+  color: var(--editor-text) !important;
+  font-weight: 500 !important;
+  font-size: 13px !important;
+}
+
+/* 为下拉框内容添加更好的布局 */
+.sceditor-dropdown > div {
+  padding: var(--space-sm) !important;
+}
+
+.sceditor-dropdown > div > div {
+  margin-bottom: var(--space-sm) !important;
+}
+
+.sceditor-dropdown > div > div:last-child {
+  margin-bottom: 0 !important;
+  text-align: right !important;
+}
+
+/* 深色主题下的下拉框元素适配 */
+[data-theme='dark'] .sceditor-dropdown input[type='text'],
+[data-theme='dark'] .sceditor-dropdown input[type='url'],
+[data-theme='dark'] .sceditor-dropdown input[type='email'] {
+  border-color: var(--border-primary) !important;
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme='dark'] .sceditor-dropdown input[type='text']:focus,
+[data-theme='dark'] .sceditor-dropdown input[type='url']:focus,
+[data-theme='dark'] .sceditor-dropdown input[type='email']:focus {
+  border-color: var(--brand-primary) !important;
+  box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.4) !important;
+}
+
+[data-theme='dark'] .sceditor-dropdown input[type='button'],
+[data-theme='dark'] .sceditor-dropdown button,
+[data-theme='dark'] .sceditor-dropdown .button {
+  background: var(--bg-surface) !important;
+  border-color: var(--border-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme='dark'] .sceditor-dropdown input[type='button']:hover,
+[data-theme='dark'] .sceditor-dropdown button:hover,
+[data-theme='dark'] .sceditor-dropdown .button:hover {
+  background: var(--button-hover-bg) !important;
+  border-color: var(--brand-primary) !important;
+}
+
+/* 字体选项 - 保持字体样式预览 */
+.sceditor-font-option {
+  font-size: 14px !important;
+}
+
+.sceditor-font-option font {
+  font-size: inherit !important;
+}
+
+/* 字体大小选择器特殊样式 */
+.sceditor-fontsize-option {
+  font-size: 10px !important;
+}
+.sceditor-fontsize-option[data-size='1'] {
+  font-size: 10px !important;
+}
+.sceditor-fontsize-option[data-size='2'] {
+  font-size: 12px !important;
+}
+.sceditor-fontsize-option[data-size='3'] {
+  font-size: 14px !important;
+}
+.sceditor-fontsize-option[data-size='4'] {
+  font-size: 16px !important;
+}
+.sceditor-fontsize-option[data-size='5'] {
+  font-size: 18px !important;
+}
+.sceditor-fontsize-option[data-size='6'] {
+  font-size: 22px !important;
+}
+.sceditor-fontsize-option[data-size='7'] {
+  font-size: 26px !important;
+}
+
+/* 字体选择器 */
+.sceditor-font-picker,
+.sceditor-fontsize-picker,
+.sceditor-format {
+  padding: var(--space-sm) 0 !important;
+}
+
+.sceditor-font-option,
+.sceditor-fontsize-option,
+.sceditor-format a {
+  color: var(--editor-text) !important;
+  cursor: pointer !important;
+  display: block !important;
+  padding: var(--space-sm) var(--space-md) !important;
+  text-decoration: none !important;
+  border-radius: var(--radius-xs) !important;
+  transition: background-color var(--duration-fast) var(--timing-ease) !important;
+}
+
+.sceditor-font-option:hover,
+.sceditor-fontsize-option:hover,
+.sceditor-format a:hover {
+  background: var(--editor-button-hover) !important;
+  color: var(--editor-text) !important;
+}
+
+/* 颜色选择器样式 */
+.sceditor-color-picker {
+  padding: var(--space-xl) !important;
+  max-width: 400px !important;
+  min-width: 380px !important;
+  background: var(--editor-bg) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+/* 为颜色选择器添加标题 */
+.sceditor-color-picker::before {
+  content: '选择字体颜色' !important;
+  display: block !important;
+  text-align: center !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  color: var(--editor-text) !important;
+  margin-bottom: var(--space-md) !important;
+  padding-bottom: var(--space-sm) !important;
+  border-bottom: 1px solid var(--border-primary) !important;
+}
+
+/* 清除浮动，确保容器正确包含内容 */
+.sceditor-color-picker::after {
+  content: '' !important;
+  display: table !important;
+  clear: both !important;
+}
+
+.sceditor-color-column {
+  float: left !important;
+  margin: 0 var(--space-md) var(--space-md) 0 !important;
+}
+
+.sceditor-color-option {
+  width: 32px !important;
+  height: 32px !important;
+  margin: 6px !important;
+  border: 2px solid var(--border-primary) !important;
+  border-radius: var(--radius-lg) !important;
+  display: inline-block !important;
+  cursor: pointer !important;
+  vertical-align: top !important;
+  /* 不设置background，让内联样式的背景色生效 */
+  overflow: hidden !important;
+  transition: all var(--duration-fast) var(--timing-ease) !important;
+  box-shadow: var(--shadow-sm) !important;
+  position: relative !important;
+}
+
+.sceditor-color-option:hover {
+  border-color: var(--border-focus) !important;
+  box-shadow: var(--shadow-md) !important;
+  transform: scale(1.15) !important;
+  z-index: 10 !important;
+}
+
+/* 为颜色选项添加悬停提示 */
+.sceditor-color-option:hover::after {
+  content: '点击应用此颜色' !important;
+  position: absolute !important;
+  bottom: -28px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+  padding: 4px 8px !important;
+  border-radius: var(--radius-sm) !important;
+  font-size: 11px !important;
+  white-space: nowrap !important;
+  box-shadow: var(--shadow-md) !important;
+  z-index: 20 !important;
+  border: 1px solid var(--border-primary) !important;
+}
+
+.sceditor-color-option:active {
+  transform: scale(0.95) !important;
+  box-shadow: var(--shadow-xs) !important;
+}
+
+/* 表情符号下拉框 */
+.sceditor-emoticons {
+  width: 280px !important;
+  max-height: 200px !important;
+  overflow-y: auto !important;
+  padding: var(--space-sm) !important;
+}
+
+.sceditor-emoticons img {
+  width: 20px !important;
+  height: 20px !important;
+  margin: 2px !important;
+  cursor: pointer !important;
+  border-radius: var(--radius-xs) !important;
+  padding: 2px !important;
+  transition: background-color var(--duration-fast) var(--timing-ease) !important;
+}
+
+.sceditor-emoticons img:hover {
+  background: var(--editor-button-hover) !important;
+}
+
+/* 插入弹窗样式 */
+.sceditor-insertwindow {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  background: var(--editor-bg) !important;
+  border: 1px solid var(--editor-border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-lg) !important;
+  z-index: 10000 !important;
+  min-width: 300px !important;
+  max-width: 500px !important;
+  padding: var(--space-lg) !important;
+  font-family: var(--font-family) !important;
+}
+
+.sceditor-insertwindow .sceditor-insertwindow-header {
+  font-weight: 600 !important;
+  font-size: 16px !important;
+  margin-bottom: var(--space-md) !important;
+  color: var(--editor-text) !important;
+  border-bottom: 1px solid var(--editor-border) !important;
+  padding-bottom: var(--space-sm) !important;
+}
+
+.sceditor-insertwindow .sceditor-insertwindow-content {
+  margin: var(--space-md) 0 !important;
+}
+
+.sceditor-insertwindow label {
+  display: block !important;
+  margin-bottom: var(--space-xs) !important;
+  color: var(--editor-text) !important;
+  font-weight: 500 !important;
+}
+
+.sceditor-insertwindow input,
+.sceditor-insertwindow textarea,
+.sceditor-insertwindow select {
+  width: 100% !important;
+  padding: var(--space-sm) !important;
+  border: 1px solid var(--editor-border) !important;
+  border-radius: var(--radius-sm) !important;
+  background: var(--editor-bg) !important;
+  color: var(--editor-text) !important;
+  font-family: var(--font-family) !important;
+  font-size: 14px !important;
+  margin-bottom: var(--space-sm) !important;
+  transition: border-color var(--duration-fast) var(--timing-ease) !important;
+  box-sizing: border-box !important;
+}
+
+.sceditor-insertwindow input:focus,
+.sceditor-insertwindow textarea:focus,
+.sceditor-insertwindow select:focus {
+  outline: none !important;
+  border-color: var(--border-focus) !important;
+  box-shadow: var(--shadow-focus) !important;
+}
+
+.sceditor-insertwindow .sceditor-insertwindow-buttons {
+  text-align: right !important;
+  margin-top: var(--space-lg) !important;
+  padding-top: var(--space-md) !important;
+  border-top: 1px solid var(--editor-border) !important;
+}
+
+.sceditor-insertwindow button {
+  padding: var(--space-sm) var(--space-lg) !important;
+  margin-left: var(--space-sm) !important;
+  border: 1px solid var(--editor-border) !important;
+  border-radius: var(--radius-sm) !important;
+  background: var(--button-bg) !important;
+  color: var(--button-text) !important;
+  font-family: var(--font-family) !important;
+  font-size: 14px !important;
+  cursor: pointer !important;
+  transition: all var(--duration-fast) var(--timing-ease) !important;
+}
+
+.sceditor-insertwindow button:hover {
+  background: var(--button-hover-bg) !important;
+  border-color: var(--button-hover-border) !important;
+}
+
+.sceditor-insertwindow button.sceditor-button-primary {
+  background: var(--brand-primary) !important;
+  color: var(--text-inverse) !important;
+  border-color: var(--brand-primary) !important;
+}
+
+.sceditor-insertwindow button.sceditor-button-primary:hover {
+  background: var(--brand-secondary) !important;
+  border-color: var(--brand-secondary) !important;
+}
+
+/* 遮罩层 */
+.sceditor-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.5) !important;
+  z-index: 9999 !important;
+}
+
+/* 拖拽覆盖层 */
+.sceditor-dnd-cover {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border: 5px dashed var(--border-secondary) !important;
+  bottom: 0 !important;
+  color: var(--text-muted) !important;
+  font-size: 2em !important;
+  left: 0 !important;
+  position: absolute !important;
+  right: 0 !important;
+  text-align: center !important;
+  top: 0 !important;
+  z-index: 200 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.sceditor-dnd-cover p {
+  pointer-events: none !important;
+  margin: 0 !important;
+  padding: var(--space-lg) !important;
+  background: var(--bg-overlay) !important;
+  border-radius: var(--radius-lg) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+/* 调整大小覆盖层 */
+.sceditor-resize-cover {
+  background: rgba(0, 0, 0, 0.3) !important;
+  height: 100% !important;
+  left: 0 !important;
+  position: absolute !important;
+  top: 0 !important;
+  width: 100% !important;
+  z-index: 10 !important;
+}
+
+/* 粘贴文本区域 */
+.sceditor-pastetext textarea {
+  border: 1px solid var(--editor-border) !important;
+  width: 20em !important;
+  min-height: 8em !important;
+  background: var(--editor-bg) !important;
+  color: var(--editor-text) !important;
+  font-family: var(--font-mono) !important;
+  padding: var(--space-md) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+/* 更多选项按钮 */
+.sceditor-more {
+  border-top: 1px solid var(--editor-border) !important;
+  cursor: pointer !important;
+  display: block !important;
+  font-weight: 600 !important;
+  padding: var(--space-sm) 0 !important;
+  text-align: center !important;
+  color: var(--editor-text) !important;
+  background: transparent !important;
+  transition: background-color var(--duration-fast) var(--timing-ease) !important;
+}
+
+.sceditor-more:hover {
+  background: var(--editor-button-hover) !important;
+}
+
+/* 全屏模式样式 */
+.sceditor-maximize {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 2000 !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: var(--bg-primary) !important;
+  border: none !important;
+  max-width: none !important;
+  max-height: none !important;
+  /* 使用 flex 布局自动处理工具栏和内容区域 */
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* 确保全屏模式覆盖所有其他样式 */
+body.sceditor-maximize,
+html.sceditor-maximize {
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+}
+
+.sceditor-maximize .sceditor-toolbar {
+  border-radius: 0 !important;
+  width: 100vw !important;
+  margin: 0 !important;
+  padding: var(--space-sm) !important;
+  /* 工具栏固定在顶部，高度自适应 */
+  flex-shrink: 0 !important;
+}
+
+.sceditor-maximize .sceditor-grip {
+  display: none !important;
+}
+
+/* 全屏模式下的 iframe 和 textarea - 使用 flex 自动填充剩余空间 */
+.sceditor-maximize iframe,
+.sceditor-maximize textarea {
+  width: 100vw !important;
+  /* 移除固定高度计算，使用 flex 自动填充 */
+  flex: 1 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: var(--space-md) !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-sizing: border-box !important;
+  background: var(--editor-bg) !important;
+  max-width: none !important;
+  max-height: none !important;
+  position: relative !important;
+}
+
+/* 全屏模式下的源码 textarea */
+.sceditor-maximize.sourceMode textarea,
+.sceditor-maximize .sceditor-container.sourceMode textarea {
+  width: 100vw !important;
+  /* 移除固定高度计算，使用 flex 自动填充 */
+  flex: 1 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: var(--space-md) !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: var(--editor-bg) !important;
+  color: var(--editor-text) !important;
+}
+
+/* 确保全屏模式下 body 样式正确 */
+.sceditor-maximize body {
+  margin: 0 !important;
+  padding: var(--space-md) !important;
+  width: 100% !important;
+  height: 100% !important;
+  box-sizing: border-box !important;
+  background: var(--editor-bg) !important;
+}
+
+/* 禁用状态按钮的特殊处理 */
+.sceditor-button.disabled svg,
+.sceditor-button:disabled svg {
+  opacity: var(--disabled-opacity) !important;
+  filter: grayscale(100%) !important;
+}
+
+/* 深色模式下的特殊处理 */
+[data-theme='dark'] .sceditor-dnd-cover {
+  background: rgba(13, 17, 23, 0.3) !important;
+  border-color: var(--border-secondary) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-theme='dark'] .sceditor-button.disabled,
+[data-theme='dark'] .sceditor-button:disabled {
+  opacity: 0.4 !important;
+}
+
+/* 编辑区域尺寸控制 */
+.sceditor-container iframe {
+  flex: 1 !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  border: none !important;
+  background: var(--editor-bg) !important;
+  display: block !important;
+}
+
+.sceditor-container textarea {
+  flex: 1 !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  border: none !important;
+  background: var(--editor-bg) !important;
+  color: var(--editor-text) !important;
+  font-family: var(--font-family) !important;
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+  padding: var(--space-md) !important;
+  resize: none !important;
+  display: none !important; /* 默认隐藏 textarea，显示 iframe */
+}
+
+/* 源码模式切换 - 隐藏 iframe，显示 textarea */
+.sceditor-container.sourceMode iframe {
+  display: none !important;
+}
+
+.sceditor-container.sourceMode textarea {
+  display: block !important;
+  outline: none !important; /* 移除焦点时的白色边框 */
+  border: none !important; /* 确保没有边框 */
+}
+
+/* 深色模式下的源码 textarea 特殊处理 */
+[data-theme='dark'] .sceditor-container.sourceMode textarea {
+  background: var(--editor-bg) !important;
+  color: var(--editor-text) !important;
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important; /* 移除任何阴影 */
+}
+
+/* 确保 textarea 在聚焦时没有默认样式 */
+.sceditor-container.sourceMode textarea:focus {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* 隐藏调整大小控件 */
+.sceditor-resize-grip,
+.ui-resizable-handle,
+.sceditor-grip {
+  display: none !important;
+}
+
+/* ===== 内容区域样式 ===== */
+
+/* 基础文档样式 */
+body {
+  font-family: var(--font-family) !important;
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+  margin: var(--space-md) !important;
+  padding: var(--space-sm) !important;
+  background: transparent !important;
+  color: var(--editor-text) !important; /* 使用编辑器文本颜色变量 */
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+}
+
+/* 段落样式 */
+p {
+  margin: 0 0 1em 0 !important;
+  padding: 0 !important;
+}
+
+/* 标题样式 */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 1.5em 0 0.5em 0 !important;
+  font-weight: 600 !important;
+  line-height: 1.3 !important;
+}
+
+h1 {
+  font-size: 1.8em !important;
+}
+h2 {
+  font-size: 1.6em !important;
+}
+h3 {
+  font-size: 1.4em !important;
+}
+h4 {
+  font-size: 1.2em !important;
+}
+h5 {
+  font-size: 1.1em !important;
+}
+h6 {
+  font-size: 1em !important;
+}
+
+/* 文本格式样式 */
+strong,
+b {
+  font-weight: 700 !important;
+}
+em,
+i {
+  font-style: italic !important;
+}
+u {
+  text-decoration: underline !important;
+}
+s,
+strike {
+  text-decoration: line-through !important;
+}
+
+/* 链接样式 */
+a {
+  color: var(--brand-primary) !important;
+  text-decoration: underline !important;
+  cursor: pointer !important;
+  transition: color var(--duration-fast) var(--timing-ease) !important;
+}
+
+a:hover {
+  color: var(--brand-secondary) !important;
+  text-decoration: none !important;
+}
+
+/* 列表样式 */
+ul,
+ol {
+  margin: 1em 0 !important;
+  padding-left: 2em !important;
+}
+
+li {
+  margin: 0.25em 0 !important;
+  line-height: 1.5 !important;
+}
+
+ul li {
+  list-style-type: disc !important;
+}
+ol li {
+  list-style-type: decimal !important;
+}
+
+/* 引用样式 */
+blockquote {
+  margin: 1em 0 !important;
+  padding: 0.75em 1em !important;
+  border-left: 4px solid var(--brand-primary) !important;
+  background: var(--brand-gradient) !important;
+  background: rgba(139, 115, 85, 0.1) !important;
+  border-radius: var(--radius-sm) !important;
+  font-style: italic !important;
+}
+
+/* 代码样式 */
+code {
+  font-family: var(--font-mono) !important;
+  font-size: 0.9em !important;
+  background: rgba(127, 127, 127, 0.1) !important;
+  padding: 0.2em 0.4em !important;
+  border-radius: var(--radius-xs) !important;
+  border: 1px solid rgba(127, 127, 127, 0.2) !important;
+}
+
+pre {
+  font-family: var(--font-mono) !important;
+  font-size: 0.9em !important;
+  background: rgba(127, 127, 127, 0.1) !important;
+  padding: 1em !important;
+  border-radius: var(--radius-md) !important;
+  border: 1px solid rgba(127, 127, 127, 0.2) !important;
+  overflow-x: auto !important;
+  white-space: pre-wrap !important;
+  margin: 1em 0 !important;
+}
+
+/* 图片样式 */
+img {
+  max-width: 100% !important;
+  height: auto !important;
+  border-radius: var(--radius-sm) !important;
+  margin: 0.5em 0 !important;
+}
+
+/* 表格样式 */
+table {
+  border-collapse: collapse !important;
+  width: 100% !important;
+  margin: 1em 0 !important;
+  border: 1px solid var(--border-primary) !important;
+}
+
+th,
+td {
+  border: 1px solid var(--border-primary) !important;
+  padding: 0.5em !important;
+  text-align: left !important;
+}
+
+th {
+  background: var(--bg-secondary) !important;
+  font-weight: 600 !important;
+}
+
+/* 水平线样式 */
+hr {
+  border: none !important;
+  border-top: 2px solid var(--border-primary) !important;
+  margin: 1.5em 0 !important;
+}
+
+/* 上标下标 */
+sup {
+  vertical-align: super !important;
+  font-size: 0.8em !important;
+}
+sub {
+  vertical-align: sub !important;
+  font-size: 0.8em !important;
+}
+
+/* 文本对齐 */
+.sceditor-left {
+  text-align: left !important;
+}
+.sceditor-center {
+  text-align: center !important;
+}
+.sceditor-right {
+  text-align: right !important;
+}
+.sceditor-justify {
+  text-align: justify !important;
+}
+
+/* 字体大小类 */
+.sceditor-size-1 {
+  font-size: 0.8em !important;
+}
+.sceditor-size-2 {
+  font-size: 0.9em !important;
+}
+.sceditor-size-3 {
+  font-size: 1em !important;
+}
+.sceditor-size-4 {
+  font-size: 1.1em !important;
+}
+.sceditor-size-5 {
+  font-size: 1.3em !important;
+}
+.sceditor-size-6 {
+  font-size: 1.5em !important;
+}
+.sceditor-size-7 {
+  font-size: 1.8em !important;
+}
+
+/* 选中文本样式 */
+::selection {
+  background: rgba(139, 115, 85, 0.3) !important;
+}
+
+::-moz-selection {
+  background: rgba(139, 115, 85, 0.3) !important;
+}
+
+/* ===== 深色主题内容样式 ===== */
+[data-theme='dark'] body {
+  color: var(--text-primary) !important;
+}
+
+[data-theme='dark'] blockquote {
+  border-left-color: var(--brand-primary) !important;
+  background: rgba(88, 166, 255, 0.15) !important;
+}
+
+[data-theme='dark'] code {
+  background: rgba(110, 118, 129, 0.2) !important;
+  border-color: rgba(110, 118, 129, 0.3) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme='dark'] pre {
+  background: rgba(110, 118, 129, 0.2) !important;
+  border-color: rgba(110, 118, 129, 0.3) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme='dark'] ::selection {
+  background: rgba(88, 166, 255, 0.4) !important;
+}
+
+[data-theme='dark'] ::-moz-selection {
+  background: rgba(88, 166, 255, 0.4) !important;
+}
+
+/* === 自定义滚动条样式 === */
+/* 浅色主题滚动条 */
+.sceditor-container ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.sceditor-container ::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.sceditor-container ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.sceditor-container ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.sceditor-container ::-webkit-scrollbar-corner {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* 深色主题滚动条 */
+[data-theme='dark'] .sceditor-container ::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme='dark'] .sceditor-container ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme='dark'] .sceditor-container ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+[data-theme='dark'] .sceditor-container ::-webkit-scrollbar-corner {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* 编辑器内部文本区域滚动条 */
+.sceditor-container iframe ::-webkit-scrollbar,
+.sceditor-container .sceditor-container textarea ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.sceditor-container iframe ::-webkit-scrollbar-track,
+.sceditor-container .sceditor-container textarea ::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.sceditor-container iframe ::-webkit-scrollbar-thumb,
+.sceditor-container .sceditor-container textarea ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.sceditor-container iframe ::-webkit-scrollbar-thumb:hover,
+.sceditor-container .sceditor-container textarea ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* 深色主题的iframe内部滚动条 */
+[data-theme='dark'] .sceditor-container iframe ::-webkit-scrollbar-track,
+[data-theme='dark'] .sceditor-container .sceditor-container textarea ::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme='dark'] .sceditor-container iframe ::-webkit-scrollbar-thumb,
+[data-theme='dark'] .sceditor-container .sceditor-container textarea ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme='dark'] .sceditor-container iframe ::-webkit-scrollbar-thumb:hover,
+[data-theme='dark']
+  .sceditor-container
+  .sceditor-container
+  textarea
+  ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Firefox 滚动条样式 */
+.sceditor-container,
+.sceditor-container iframe,
+.sceditor-container textarea {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.05);
+}
+
+[data-theme='dark'] .sceditor-container,
+[data-theme='dark'] .sceditor-container iframe,
+[data-theme='dark'] .sceditor-container textarea {
+  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
+}
+
+/* ===== 复制通知样式 ===== */
+.copy-notification {
+  position: fixed !important;
+  top: 20px !important;
+  right: 20px !important;
+  background: var(--success-bg, #10b981) !important;
+  color: white !important;
+  padding: 12px 20px !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+  z-index: 10000 !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  font-family: var(--font-family) !important;
+  transition: all 0.3s ease !important;
+  pointer-events: none !important;
+  max-width: 300px !important;
+  word-wrap: break-word !important;
+}
+
+.copy-notification.error {
+  background: var(--error-bg, #ef4444) !important;
+}
+
+.copy-notification.fadeout {
+  opacity: 0 !important;
+  transform: translateY(-20px) !important;
+}
