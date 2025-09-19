@@ -226,7 +226,7 @@ function handleDragLeave(e) {
     isDragging.value = false
     if (!props.autoShow) {
       setTimeout(() => {
-        if (!isDragging.value && !isUploading.value) {
+        if (!isDragging.value && !isUploading.value && !hasError.value) {
           showDropZone.value = false
         }
       }, 300)
@@ -305,6 +305,11 @@ async function uploadFiles(files) {
           emit('upload-progress', progress.value)
         })
 
+        // 检查上传结果，如果上传失败则抛出错误
+        if (!result.success) {
+          throw new Error(result.error || '上传失败')
+        }
+
         // 记录成功结果
         uploadResults.value.push({
           file: file,
@@ -332,7 +337,8 @@ async function uploadFiles(files) {
         if (files.length === 1) {
           showError(`${file.name}: ${error.message}`)
           emit('upload-error', error)
-          return
+          // 不要直接return，让它继续到finally块
+          break
         }
       }
     }
@@ -404,6 +410,7 @@ function hasImageFiles(e) {
 }
 
 function showError(message, source = 'upload') {
+  console.log('设置错误状态:', message, source)
   hasError.value = true
   errorMessage.value = message
   errorSource.value = source
@@ -412,6 +419,7 @@ function showError(message, source = 'upload') {
 }
 
 function clearError() {
+  console.log('清除错误状态')
   hasError.value = false
   errorMessage.value = ''
 
@@ -441,10 +449,14 @@ function cancelUpload() {
   emit('upload-canceled')
 }
 
-function resetState() {
+function resetState(clearErrorState = true) {
+  console.log('重置状态, clearErrorState:', clearErrorState)
   isUploading.value = false
-  hasError.value = false
-  errorMessage.value = ''
+  if (clearErrorState) {
+    console.log('清除错误状态')
+    hasError.value = false
+    errorMessage.value = ''
+  }
   progress.value = 0
   currentFileIndex.value = 0
   totalFiles.value = 0
