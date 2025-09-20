@@ -197,10 +197,6 @@ Currently supported languages:
 
 To add a new language, extend the translation objects in `src/utils/i18n.js`.
 
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
-
 ### Development Setup
 
 1. Fork the repository
@@ -220,28 +216,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Vue.js**: For the reactive framework that powers the user interface
 - **Image Hosting Services**: FreeImage.host and SDA1.dev for providing reliable image hosting APIs
 - **Contributors**: Everyone who has contributed to making Voke better
-
-## 📞 Support
-
-- **Issues**: [GitHub Issues](https://github.com/plumed-nebula/voke/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/plumed-nebula/voke/discussions)
-- **Documentation**: Check the `/docs` folder for detailed guides
-
-## 🔮 Roadmap
-
-- [ ] Plugin system for custom BBCode tags
-- [ ] More image hosting service integrations
-- [ ] Advanced image editing tools
-- [ ] Collaborative editing features
-- [ ] Mobile app versions
-- [ ] Cloud synchronization options
-
----
-
-<div align="center">
-
-**Made with ❤️ by the Voke Team**
-
-[Website](https://voke.dev) • [Documentation](docs/) • [GitHub](https://github.com/plumed-nebula/voke)
-
-</div>
