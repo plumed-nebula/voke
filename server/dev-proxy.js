@@ -68,8 +68,6 @@ app.all('/', async (req, res) => {
       forwardUrl.searchParams.set('key', process.env.IMGBB_KEY)
     }
 
-    console.log(`[Dev Proxy] Forwarding ${req.method} to:`, forwardUrl.toString())
-
     // 准备请求选项
     const fetchOptions = {
       method: req.method,
@@ -77,13 +75,16 @@ app.all('/', async (req, res) => {
       redirect: 'follow',
     }
 
-    // 复制请求头（过滤掉一些不需要的头）
+    // 复制请求头（完全模仿 Worker 行为）
     const skipHeaders = ['host', 'connection', 'content-length']
     for (const [key, value] of Object.entries(req.headers)) {
       if (!skipHeaders.includes(key.toLowerCase())) {
         fetchOptions.headers[key] = value
       }
     }
+
+    // 🔧 不再强制禁用压缩，保留浏览器原始的 Accept-Encoding
+    // 让 node-fetch 自动处理压缩（就像 Worker 的原生 fetch）
 
     // 处理请求体
     if (!['GET', 'HEAD'].includes(req.method.toUpperCase())) {
@@ -98,20 +99,22 @@ app.all('/', async (req, res) => {
       }
     }
 
-    // 发送请求
+    // 发送请求（完全透明转发）
     const fetch = (await import('node-fetch')).default
     const upstream = await fetch(forwardUrl.toString(), fetchOptions)
 
-    // 获取响应数据
-    const responseBuffer = await upstream.buffer()
+    // 获取响应体（不解析，直接转发）
+    const responseBody = await upstream.buffer()
 
-    // 设置响应头
+    // 设置响应头（透明转发）
     upstream.headers.forEach((value, key) => {
-      // 跳过一些不需要的响应头，包括编码相关头部
+      // 只跳过传输层相关的头部
       if (
-        !['connection', 'transfer-encoding', 'content-encoding', 'content-length'].includes(
-          key.toLowerCase(),
-        )
+        ![
+          'connection',
+          'transfer-encoding',
+          'content-length', // Express 会自动设置正确的 content-length
+        ].includes(key.toLowerCase())
       ) {
         res.set(key, value)
       }
@@ -122,8 +125,8 @@ app.all('/', async (req, res) => {
     res.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
     res.set('Access-Control-Allow-Headers', '*')
 
-    // 返回响应
-    res.status(upstream.status).send(responseBuffer)
+    // 透明转发响应体
+    res.status(upstream.status).send(responseBody)
   } catch (error) {
     console.error('[Dev Proxy] Error:', error)
     res.status(500).json({

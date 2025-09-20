@@ -84,6 +84,7 @@
               <select v-model="localSettings.imageHost" class="select-input">
                 <option value="local">{{ t('localTest') }}</option>
                 <option value="freeimage">{{ t('freeimageHost') }}</option>
+                <option value="sda1">{{ t('sda1Host') }}</option>
               </select>
             </div>
             <p class="setting-description">

@@ -1,5 +1,5 @@
 /**
- * 代理上传图片工具模块 - 仅支持 FreeImage.host 和本地测试
+ * 代理上传图片工具模块 - 支持多个图床：FreeImage.host、SDA1.dev 和本地测试
  */
 
 import { t } from './i18n.js'
@@ -18,6 +18,14 @@ const IMAGE_HOSTS = {
     maxSize: 64 * 1024 * 1024, // 64MB
     supportedFormats: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'],
     requiresApiKey: true,
+  },
+  SDA1: {
+    name: 'SDA1.dev',
+    id: 'sda1',
+    uploadUrl: 'https://p.sda1.dev/api/v1/upload_external_noform',
+    maxSize: 5 * 1024 * 1024, // 5MB (SDA1实际限制)
+    supportedFormats: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico'],
+    requiresApiKey: false,
   },
   LOCAL: {
     name: () => t('localTest'),
@@ -156,6 +164,82 @@ async function uploadToFreeImageProxy(file, apiKey, onProgress) {
 }
 
 /**
+ * 上传到 SDA1.dev (通过代理)
+ * @param {File} file - 图片文件
+ * @param {Function} onProgress - 进度回调
+ * @returns {Promise<Object>} 上传结果
+ */
+async function uploadToSDA1Proxy(file, onProgress) {
+  const hostConfig = IMAGE_HOSTS.SDA1
+  const validation = validateImageFile(file, hostConfig)
+  if (!validation.valid) {
+    throw new Error(validation.errors.join('; '))
+  }
+
+  try {
+    onProgress?.(10)
+
+    // 构建代理 URL，带filename参数
+    const targetUrl = `${hostConfig.uploadUrl}?filename=${encodeURIComponent(file.name)}`
+    const proxyUrl = buildProxyUrl(targetUrl)
+
+    onProgress?.(50)
+
+    // 使用与测试脚本完全相同的方式处理文件
+    // 1. 先转换为ArrayBuffer
+    const arrayBuffer = await file.arrayBuffer()
+    // 2. 再转换为Uint8Array (类似Buffer的行为)
+    const uint8Array = new Uint8Array(arrayBuffer)
+
+    console.log(`📁 [SDA1] 文件处理信息:`)
+    console.log(`   - 文件名: ${file.name}`)
+    console.log(`   - 原始大小: ${file.size} bytes`)
+    console.log(`   - ArrayBuffer大小: ${arrayBuffer.byteLength} bytes`)
+    console.log(`   - Uint8Array大小: ${uint8Array.length} bytes`)
+
+    // 发送与测试脚本完全相同的数据类型
+    const response = await fetch(proxyUrl, {
+      method: 'POST',
+      body: uint8Array, // 发送Uint8Array，与Buffer行为一致
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        'User-Agent': 'Mozilla/5.0 (compatible; Voke-Editor/1.0)',
+        'Content-Length': uint8Array.length.toString(), // 添加Content-Length
+      },
+    })
+
+    onProgress?.(90)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`${t('uploadFailedHttp')}: HTTP ${response.status} - ${errorText}`)
+    }
+
+    const data = await response.json()
+    console.log('SDA1 前端响应数据:', data)
+    onProgress?.(100)
+
+    // 检查响应格式 - SDA1返回 {success: true, data: {url: "...", delete_url: "..."}}
+    if (data.success && data.data && data.data.url) {
+      return {
+        success: true,
+        url: data.data.url,
+        deleteUrl: data.data.delete_url || null,
+        host: 'sda1',
+      }
+    } else {
+      throw new Error(`${t('uploadFailed')}: ${data.message || data.error || t('unknownError')}`)
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+      host: 'sda1',
+    }
+  }
+}
+
+/**
  * 本地测试上传 (生成 Base64 预览)
  * @param {File} file - 图片文件
  * @param {Function} onProgress - 进度回调
@@ -208,6 +292,8 @@ export async function uploadImage(file, host = 'freeimage', apiKey = '', onProgr
     switch (host) {
       case 'freeimage':
         return await uploadToFreeImageProxy(file, apiKey, onProgress)
+      case 'sda1':
+        return await uploadToSDA1Proxy(file, onProgress)
       case 'local':
         return await uploadToLocal(file, onProgress)
       default:
@@ -285,6 +371,12 @@ export function getSupportedHosts() {
       description: t('viaProxy'),
     },
     {
+      id: 'sda1',
+      name: 'SDA1.dev',
+      requiresApiKey: false,
+      description: t('viaProxy'),
+    },
+    {
       id: 'local',
       name: t('localTest'),
       requiresApiKey: false,
@@ -301,6 +393,7 @@ export function getSupportedHosts() {
 export function getHostConfig(hostId) {
   const configs = {
     freeimage: IMAGE_HOSTS.FREEIMAGE,
+    sda1: IMAGE_HOSTS.SDA1,
     local: IMAGE_HOSTS.LOCAL,
   }
   return configs[hostId] || null
