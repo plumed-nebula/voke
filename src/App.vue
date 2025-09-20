@@ -391,8 +391,8 @@ const handleContentChange = (newContent) => {
  * 处理图片插入成功
  * @param {Object} data - 插入数据
  */
+// eslint-disable-next-line no-unused-vars
 const handleImageInserted = (data) => {
-  console.log('图片已插入:', data)
   // 图片插入后触发内容变化检测，进行自动保存
   if (autoSaveEnabled.value) {
     handleContentChange(content.value)

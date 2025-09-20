@@ -413,7 +413,6 @@ function hasImageFiles(e) {
 }
 
 function showError(message, source = 'upload') {
-  console.log('设置错误状态:', message, source)
   hasError.value = true
   errorMessage.value = message
   errorSource.value = source
@@ -422,7 +421,6 @@ function showError(message, source = 'upload') {
 }
 
 function clearError() {
-  console.log('清除错误状态')
   hasError.value = false
   errorMessage.value = ''
 
@@ -453,11 +451,9 @@ function cancelUpload() {
 }
 
 function resetState(clearErrorState = true) {
-  console.log('重置状态, clearErrorState:', clearErrorState)
   isUploading.value = false
   isBatchProcessing.value = false
   if (clearErrorState) {
-    console.log('清除错误状态')
     hasError.value = false
     errorMessage.value = ''
   }
@@ -611,7 +607,6 @@ async function processBatchLinks(urls) {
       const imageExtensions = /\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?.*)?$/i
       if (!imageExtensions.test(url)) {
         // 对于批量处理，自动跳过非图片链接而不是询问用户
-        console.warn(`跳过非图片链接: ${url}`)
         continue
       }
 

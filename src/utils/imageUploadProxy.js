@@ -191,12 +191,6 @@ async function uploadToSDA1Proxy(file, onProgress) {
     // 2. 再转换为Uint8Array (类似Buffer的行为)
     const uint8Array = new Uint8Array(arrayBuffer)
 
-    console.log(`📁 [SDA1] 文件处理信息:`)
-    console.log(`   - 文件名: ${file.name}`)
-    console.log(`   - 原始大小: ${file.size} bytes`)
-    console.log(`   - ArrayBuffer大小: ${arrayBuffer.byteLength} bytes`)
-    console.log(`   - Uint8Array大小: ${uint8Array.length} bytes`)
-
     // 发送与测试脚本完全相同的数据类型
     const response = await fetch(proxyUrl, {
       method: 'POST',
@@ -216,7 +210,6 @@ async function uploadToSDA1Proxy(file, onProgress) {
     }
 
     const data = await response.json()
-    console.log('SDA1 前端响应数据:', data)
     onProgress?.(100)
 
     // 检查响应格式 - SDA1返回 {success: true, data: {url: "...", delete_url: "..."}}

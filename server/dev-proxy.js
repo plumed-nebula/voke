@@ -148,14 +148,14 @@ app.get('/health', (req, res) => {
 
 // 启动服务器
 const server = app.listen(PORT, () => {
-  console.log(`🚀 Dev proxy server running on http://localhost:${PORT}`)
+  console.log(`🚀 Proxy server running on http://localhost:${PORT}`)
   console.log(`📋 Health check: http://localhost:${PORT}/health`)
   console.log(`🔗 Proxy usage: http://localhost:${PORT}/?target=<encoded_url>`)
 })
 
 // 优雅关闭
 process.on('SIGINT', () => {
-  console.log('\n👋 Shutting down dev proxy server...')
+  console.log('\n👋 Shutting down proxy server...')
   server.close(() => {
     console.log('Server closed gracefully')
     process.exit(0)
@@ -163,7 +163,7 @@ process.on('SIGINT', () => {
 })
 
 process.on('SIGTERM', () => {
-  console.log('\n👋 Shutting down dev proxy server...')
+  console.log('\n👋 Shutting down proxy server...')
   server.close(() => {
     console.log('Server closed gracefully')
     process.exit(0)

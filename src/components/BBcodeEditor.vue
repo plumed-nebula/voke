@@ -92,8 +92,7 @@ function getSafeEditorContent() {
         return lastValidContent
       }
     }
-    // 用户可能是故意清空内容，但记录这个操作
-    console.log('编辑器内容被清空')
+    // 用户可能是故意清空内容
     lastValidContent = '' // 只在确认用户意图清空时才清除
     return currentContent
   }
@@ -280,13 +279,11 @@ function insertImageAtCursor(bbcode, uploadResult) {
 
   // 检查上传结果，如果上传失败则不插入
   if (uploadResult && uploadResult.success === false) {
-    console.warn('上传失败，不插入图片', uploadResult.error)
     return
   }
 
   // 检查BBCode是否有效
   if (!bbcode || bbcode.trim() === '') {
-    console.warn('BBCode为空，不插入图片')
     return
   }
 
