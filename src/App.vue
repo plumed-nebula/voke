@@ -9,6 +9,8 @@ import { useTranslation } from './utils/i18n.js'
 
 const editorRef = ref(null)
 const content = ref('')
+let contentLoaded = false // 标记内容是否已经加载
+let pendingContent = '' // 待加载的内容
 
 // 国际化
 const { t } = useTranslation()
@@ -35,6 +37,48 @@ const saveStatus = ref('saved') // 'saved', 'saving', 'unsaved'
 let autoSaveTimer = null
 const AUTOSAVE_DELAY = ref(settings.value.autoSaveDelay) // 从设置获取延迟时间
 let isUpdatingContent = false // 防止watch循环的标志
+
+/**
+ * 延迟内容加载 - 确保在页面完全加载后才设置内容
+ */
+const loadContentSafely = (newContent) => {
+  if (contentLoaded && editorRef.value) {
+    // 如果已经加载完成且编辑器准备好，直接设置
+    isUpdatingContent = true
+    content.value = newContent
+    isUpdatingContent = false
+
+    // 同步到编辑器
+    if (editorRef.value.updateContent) {
+      editorRef.value.updateContent(newContent)
+    }
+  } else {
+    // 否则保存待加载的内容
+    pendingContent = newContent
+  }
+}
+
+/**
+ * 编辑器准备就绪回调
+ */
+const handleEditorReady = () => {
+  // 标记内容加载完成
+  contentLoaded = true
+
+  // 如果有待加载的内容，现在加载它
+  if (pendingContent !== '') {
+    isUpdatingContent = true
+    content.value = pendingContent
+    isUpdatingContent = false
+
+    // 同步到编辑器
+    if (editorRef.value && editorRef.value.updateContent) {
+      editorRef.value.updateContent(pendingContent)
+    }
+
+    pendingContent = '' // 清空待加载内容
+  }
+}
 
 // 默认内容（多语言）
 const defaultContent = {
@@ -102,14 +146,12 @@ const initializeApp = () => {
   currentLanguage.value = settings.value.language
   AUTOSAVE_DELAY.value = settings.value.autoSaveDelay
 
-  // 使用统一的内容获取逻辑
+  // 使用统一的内容获取逻辑，但不立即设置，而是等待编辑器准备完成
   const initialContent = getInitialContent(settings.value.language, settings.value.autoSaveEnabled)
 
-  // 设置内容时防止触发watch
-  isUpdatingContent = true
-  content.value = initialContent
+  // 使用延迟加载逻辑
+  loadContentSafely(initialContent)
   saveStatus.value = 'saved'
-  isUpdatingContent = false
 
   // 应用主题
   applyTheme(currentTheme.value)
@@ -182,16 +224,7 @@ const changeLanguage = (language) => {
 
   if (shouldUseDefaultContent) {
     const newContent = getInitialContent(language, false) // 强制使用默认内容
-    isUpdatingContent = true
-    content.value = newContent
-    isUpdatingContent = false
-
-    // 确保编辑器也更新内容
-    setTimeout(() => {
-      if (editorRef.value && editorRef.value.updateContent) {
-        editorRef.value.updateContent(newContent)
-      }
-    }, 200) // 给编辑器重建留足时间
+    loadContentSafely(newContent) // 使用延迟加载
   }
 }
 
@@ -207,9 +240,7 @@ const handleNewDocument = async () => {
   }
 
   // 清空内容
-  isUpdatingContent = true
-  content.value = ''
-  isUpdatingContent = false
+  loadContentSafely('') // 使用延迟加载
 
   // 如果开启了自动保存，清除保存的内容
   if (autoSaveEnabled.value) {
@@ -222,11 +253,6 @@ const handleNewDocument = async () => {
 
   // 更新保存状态
   saveStatus.value = 'saved'
-
-  // 同步到编辑器
-  if (editorRef.value && editorRef.value.updateContent) {
-    editorRef.value.updateContent('')
-  }
 
   showFileNotification(t('newDocumentCreated') || '已创建新文档', 'success')
 }
@@ -262,14 +288,7 @@ const handleLoadFromFile = async () => {
     const result = await readFromFile(file)
 
     if (result.success) {
-      isUpdatingContent = true
-      content.value = result.content
-      isUpdatingContent = false
-
-      // 同步到编辑器
-      if (editorRef.value && editorRef.value.updateContent) {
-        editorRef.value.updateContent(result.content)
-      }
+      loadContentSafely(result.content) // 使用延迟加载
       showFileNotification(`已从文件加载内容: ${file.name}`, 'success')
 
       // 如果启用了自动保存，保存加载的内容
@@ -320,15 +339,8 @@ const handleClearData = () => {
   const result = clearAllData()
   if (result.success) {
     // 重置界面状态
-    isUpdatingContent = true
-    content.value = defaultContent[settings.value.language]
+    loadContentSafely(defaultContent[settings.value.language]) // 使用延迟加载
     saveStatus.value = 'saved'
-    isUpdatingContent = false
-
-    // 同步到编辑器
-    if (editorRef.value && editorRef.value.updateContent) {
-      editorRef.value.updateContent(content.value)
-    }
 
     showFileNotification('所有本地数据已清除', 'success')
   } else {
@@ -376,36 +388,6 @@ const handleContentChange = (newContent) => {
 // ===== 图片上传处理 =====
 
 /**
- * 处理图片上传开始
- * @param {Array} files - 上传的文件列表
- */
-const handleImageUploadStart = (files) => {
-  console.log(
-    '开始上传图片:',
-    files.map((f) => f.name),
-  )
-  // 可以在这里显示上传提示
-}
-
-/**
- * 处理图片上传成功
- * @param {Object} result - 上传结果
- */
-const handleImageUploadSuccess = (result) => {
-  console.log('图片上传成功:', result)
-  // 可以在这里显示成功提示
-}
-
-/**
- * 处理图片上传错误
- * @param {Error} error - 错误对象
- */
-const handleImageUploadError = (error) => {
-  console.error('图片上传失败:', error)
-  // 可以在这里显示错误提示
-}
-
-/**
  * 处理图片插入成功
  * @param {Object} data - 插入数据
  */
@@ -445,14 +427,11 @@ onMounted(() => {
         v-model:value="content"
         :options="{ format: 'bbcode' }"
         :image-host="settings.imageHost"
-        :image-api-key="settings.imageHost === 'freeimage' ? settings.freeimageApiKey : ''"
-        :use-direct-image-link="true"
+        :image-api-key="settings.freeimageApiKey"
         :auto-newline-after-image="settings.autoNewlineAfterImage"
         :image-alignment="settings.imageAlignment"
         :use-align-param-on-copy="settings.useAlignParamOnCopy"
-        @upload-start="handleImageUploadStart"
-        @upload-success="handleImageUploadSuccess"
-        @upload-error="handleImageUploadError"
+        @ready="handleEditorReady"
         @image-inserted="handleImageInserted"
       />
     </main>

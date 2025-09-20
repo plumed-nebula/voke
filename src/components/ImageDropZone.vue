@@ -31,20 +31,20 @@
 
     <!-- 链接输入界面 -->
     <div v-if="showLinkInput && !isUploading && !hasError" class="link-input-container">
-      <h3 class="link-title">{{ t('insertImageLink') }}</h3>
+      <h3 class="link-title">{{ t('insertBatchLinks') }}</h3>
       <div class="link-hint-top">
         <p class="link-hint">{{ t('linkHint') }}</p>
       </div>
-      <input
+      <textarea
         ref="linkInput"
         v-model="imageUrl"
-        type="url"
-        :placeholder="t('imageLinkPlaceholder')"
+        :placeholder="t('batchLinkPlaceholder')"
         class="link-input"
-        @keyup.enter="insertImageLink"
-      />
+        rows="6"
+        @keyup.ctrl.enter="insertImageLink"
+      ></textarea>
       <button class="insert-button" @click="insertImageLink" :disabled="!imageUrl.trim()">
-        {{ t('insert') }}
+        {{ t('insertBatchLinks') }}
       </button>
     </div>
     <!-- 上传进度 -->
@@ -55,7 +55,9 @@
         </svg>
       </div>
       <div class="progress-info">
-        <p class="progress-title">{{ t('uploadingImage') }}</p>
+        <p class="progress-title">
+          {{ isBatchProcessing ? t('batchProcessing') : t('uploadingImage') }}
+        </p>
         <div class="progress-details" v-if="totalFiles > 1">
           <p class="file-progress">
             {{ currentFileIndex + 1 }} / {{ totalFiles }} - {{ currentFileName }}
@@ -106,7 +108,7 @@
             d="M10.59,13.41C11,13.8 11,14.4 10.59,14.81C10.2,15.2 9.6,15.2 9.19,14.81L7.77,13.39C7,12.61 7,11.39 7.77,10.61L9.19,9.19C10.2,8.2 11.8,8.2 12.8,9.19L14.22,10.61C14.61,11 14.61,11.6 14.22,12C13.83,12.39 13.23,12.39 12.84,12L11.42,10.58C11.23,10.39 10.94,10.39 10.75,10.58L9.33,12C9.14,12.2 9.14,12.49 9.33,12.68L10.59,13.41M13.41,9.17C13.8,8.78 14.4,8.78 14.81,9.17L16.23,10.59C17,11.37 17,12.63 16.23,13.41L14.81,14.83C13.8,15.8 12.2,15.8 11.2,14.83L9.78,13.41C9.39,13 9.39,12.4 9.78,12C10.17,11.61 10.77,11.61 11.16,12L12.58,13.42C12.77,13.61 13.06,13.61 13.25,13.42L14.67,12C14.86,11.8 14.86,11.51 14.67,11.32L13.41,9.17Z"
           />
         </svg>
-        {{ showLinkInput ? t('backToUpload') : t('insertLink') }}
+        {{ showLinkInput ? t('backToUpload') : t('insertBatchLinks') }}
       </button>
       <button class="action-button main-cancel-button" @click="hideDropZone">
         <svg viewBox="0 0 24 24" fill="currentColor" class="button-icon">
@@ -199,6 +201,7 @@ const canCancel = ref(false)
 const showLinkInput = ref(false)
 const imageUrl = ref('')
 const errorSource = ref('') // 跟踪错误来源：'upload'或'link'
+const isBatchProcessing = ref(false) // 批量链接处理状态
 
 // ===== 拖拽处理 =====
 function handleDragEnter(e) {
@@ -452,6 +455,7 @@ function cancelUpload() {
 function resetState(clearErrorState = true) {
   console.log('重置状态, clearErrorState:', clearErrorState)
   isUploading.value = false
+  isBatchProcessing.value = false
   if (clearErrorState) {
     console.log('清除错误状态')
     hasError.value = false
@@ -494,38 +498,146 @@ function hideLinkInput() {
 }
 
 function insertImageLink() {
-  const url = imageUrl.value.trim()
+  const input = imageUrl.value.trim()
 
-  if (!url) {
+  if (!input) {
     showError(t('pleaseEnterValidImageLink'), 'link')
     return
   }
 
-  // 基本的URL验证
-  try {
-    new URL(url)
-  } catch {
+  // 分割输入为多行，过滤空行
+  const lines = input
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+
+  if (lines.length === 0) {
+    showError(t('pleaseEnterValidImageLink'), 'link')
+    return
+  }
+
+  // 单行处理 - 保持原有逻辑
+  if (lines.length === 1) {
+    const url = lines[0]
+
+    // 基本的URL验证
+    try {
+      new URL(url)
+    } catch {
+      showError(t('invalidUrlFormat'), 'link')
+      return
+    }
+
+    // 检查是否是图片文件扩展名
+    const imageExtensions = /\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?.*)?$/i
+    if (!imageExtensions.test(url)) {
+      const confirmed = confirm(t('notImageFileConfirmation'))
+      if (!confirmed) {
+        return
+      }
+    }
+
+    // 生成BBCode并发射插入事件
+    const bbcode = generateImageBBCode(url)
+    emit('insert-image', bbcode, { url, source: 'link' })
+
+    // 清理状态并隐藏整个drop zone
+    hideLinkInput()
+    if (!props.autoShow) {
+      showDropZone.value = false
+    }
+    return
+  }
+
+  // 批量处理
+  processBatchLinks(lines)
+}
+
+async function processBatchLinks(urls) {
+  // 显示批量处理状态
+  isBatchProcessing.value = true
+  isUploading.value = true
+  hasError.value = false
+  progress.value = 0
+  totalFiles.value = urls.length
+  currentFileIndex.value = 0
+
+  const validUrls = []
+  const invalidUrls = []
+
+  // 验证所有URL
+  for (let i = 0; i < urls.length; i++) {
+    const url = urls[i]
+    currentFileIndex.value = i
+    progress.value = Math.round((i / urls.length) * 50) // 验证阶段占50%进度
+
+    try {
+      new URL(url)
+      validUrls.push(url)
+    } catch {
+      invalidUrls.push(url)
+    }
+  }
+
+  if (validUrls.length === 0) {
+    isBatchProcessing.value = false
     showError(t('invalidUrlFormat'), 'link')
     return
   }
 
-  // 检查是否是图片文件扩展名
-  const imageExtensions = /\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?.*)?$/i
-  if (!imageExtensions.test(url)) {
-    const confirmed = confirm(t('notImageFileConfirmation'))
+  // 如果有无效URL，询问用户是否继续
+  if (invalidUrls.length > 0) {
+    const message = t('batchLinkConfirm')
+      .replace('{invalid}', invalidUrls.length)
+      .replace('{valid}', validUrls.length)
+    const confirmed = confirm(message)
     if (!confirmed) {
+      isBatchProcessing.value = false
+      isUploading.value = false
+      progress.value = 0
       return
     }
   }
 
-  // 生成BBCode并发射插入事件
-  const bbcode = generateImageBBCode(url)
-  emit('insert-image', bbcode, { url, source: 'link' })
+  // 插入所有有效的图片链接
+  try {
+    for (let i = 0; i < validUrls.length; i++) {
+      const url = validUrls[i]
+      currentFileIndex.value = i
+      currentFileName.value = url.split('/').pop() || url
+      progress.value = Math.round(50 + (i / validUrls.length) * 50) // 插入阶段占另外50%
 
-  // 清理状态并隐藏整个drop zone
-  hideLinkInput()
-  if (!props.autoShow) {
-    showDropZone.value = false
+      // 检查是否是图片文件扩展名
+      const imageExtensions = /\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?.*)?$/i
+      if (!imageExtensions.test(url)) {
+        // 对于批量处理，自动跳过非图片链接而不是询问用户
+        console.warn(`跳过非图片链接: ${url}`)
+        continue
+      }
+
+      // 生成BBCode并发射插入事件
+      const bbcode = generateImageBBCode(url)
+      emit('insert-image', bbcode, { url, source: 'batch-link' })
+
+      // 添加小延迟避免过快插入
+      await new Promise((resolve) => setTimeout(resolve, 100))
+    }
+
+    progress.value = 100
+
+    // 批量处理完成，短暂显示成功状态后隐藏
+    setTimeout(() => {
+      isBatchProcessing.value = false
+      isUploading.value = false
+      hideLinkInput()
+      if (!props.autoShow) {
+        showDropZone.value = false
+      }
+      resetState()
+    }, 1000)
+  } catch (error) {
+    isBatchProcessing.value = false
+    showError(`${t('batchProcessFailed')}: ${error.message}`, 'link')
   }
 }
 
@@ -1000,6 +1112,10 @@ defineExpose({
   transition: all 0.2s ease;
   margin-bottom: var(--space-lg, 16px);
   box-sizing: border-box;
+  resize: vertical;
+  min-height: 120px;
+  font-family: inherit;
+  line-height: 1.5;
 }
 
 .link-input:focus {

@@ -65,14 +65,13 @@ let lastValidContent = '' // 最后一次有效的内容，用于防止内容意
  * @returns {string} 编辑器内容
  */
 function getSafeEditorContent() {
-  if (!editorInstance.value) return ''
+  if (!editorInstance.value) return lastValidContent || ''
 
   const currentContent = editorInstance.value.val()
 
   // 如果内容为空或明显比上次有效内容短很多，可能是图片加载导致的临时问题
   if (!currentContent || currentContent.trim() === '') {
     // 如果有上次的有效内容且当前为空，可能是临时问题，返回上次的内容
-    // 但是要确保这不是用户有意清空内容（比如手动删除所有内容）
     if (lastValidContent && lastValidContent.trim() !== '') {
       // 检查是否有图片正在加载，如果没有图片加载，用户可能是故意清空内容
       const iframe = editor.value?.parentNode?.querySelector('iframe')
@@ -86,9 +85,16 @@ function getSafeEditorContent() {
         console.warn('编辑器内容意外为空（检测到图片加载中），使用上次有效内容')
         return lastValidContent
       }
+
+      // 如果没有图片加载，检查是否是在初始化期间，初始化期间也保护内容
+      if (isInitializing) {
+        console.warn('编辑器初始化期间检测到内容清空，使用上次有效内容')
+        return lastValidContent
+      }
     }
-    // 正常的空内容，清除lastValidContent
-    lastValidContent = ''
+    // 用户可能是故意清空内容，但记录这个操作
+    console.log('编辑器内容被清空')
+    lastValidContent = '' // 只在确认用户意图清空时才清除
     return currentContent
   }
 
@@ -538,6 +544,7 @@ function initializeEditor() {
   if (props.value && props.value.trim() !== '') {
     try {
       editorInstance.value.val(props.value)
+      lastValidContent = props.value // 记录有效内容
     } catch (e) {
       emit('error', new Error('Failed to set initial value: ' + e.message))
     }
@@ -649,16 +656,13 @@ function initializeEditor() {
           iframe.addEventListener('load', () => {
             setTimeout(() => {
               setupIframeStyles()
-              // 在iframe加载完成后强制设置初始值，但只有在当前编辑器内容为空时才设置
+              // 在iframe加载完成后检查内容，但不强制重设
               if (props.value && props.value.trim() !== '') {
                 const currentContent = editorInstance.value.val()
-                // 只有当前内容为空或明显不完整时才重新设置
-                if (
-                  !currentContent ||
-                  currentContent.trim() === '' ||
-                  currentContent.length < props.value.length * 0.5
-                ) {
+                // 只有当前内容为空且有传入值时才设置
+                if (!currentContent || currentContent.trim() === '') {
                   editorInstance.value.val(props.value)
+                  lastValidContent = props.value // 更新有效内容记录
                   // 再次应用样式确保正确显示
                   setTimeout(() => setupIframeStyles(), 50)
                 }
@@ -676,34 +680,39 @@ function initializeEditor() {
 
   emit('ready', editorInstance.value)
 
-  /**
-   * 设置编辑器初始值的辅助函数
-   * @returns {Boolean} 是否设置成功
-   */
-  const setInitialValue = () => {
+  // 设置初始值的保守策略 - 减少多次设置
+  const setInitialValueSafely = () => {
     if (props.value && props.value.trim() !== '' && editorInstance.value) {
-      try {
-        editorInstance.value.val(props.value)
-        return true
-      } catch (e) {
-        emit('error', new Error('Failed to set initial value: ' + e.message))
-        return false
+      const currentContent = editorInstance.value.val()
+      // 只有内容真正为空时才设置
+      if (!currentContent || currentContent.trim() === '') {
+        try {
+          editorInstance.value.val(props.value)
+          lastValidContent = props.value
+          return true
+        } catch (e) {
+          emit('error', new Error('Failed to set initial value: ' + e.message))
+          return false
+        }
       }
     }
     return false
   }
 
-  // 多次尝试设置初始值，确保在各种时机都能成功
-  setTimeout(() => setInitialValue(), 200)
-  setTimeout(() => setInitialValue(), 500)
-  setTimeout(() => setInitialValue(), 1000)
+  // 减少多次尝试设置初始值，避免覆盖用户编辑
+  setTimeout(() => setInitialValueSafely(), 200)
+  setTimeout(() => setInitialValueSafely(), 500)
 
   // 确保样式在编辑器完全初始化后应用，并完成初始化流程
   setTimeout(() => {
     setupIframeStyles()
-    // 最终设置初始值
+    // 最终检查初始值设置
     if (props.value && props.value.trim() !== '') {
-      editorInstance.value.val(props.value)
+      const currentContent = editorInstance.value.val()
+      if (!currentContent || currentContent.trim() === '') {
+        editorInstance.value.val(props.value)
+        lastValidContent = props.value
+      }
       // 确保样式应用到设置的内容
       setTimeout(() => {
         setupIframeStyles()
@@ -1029,7 +1038,18 @@ watch(
       newValue !== undefined &&
       editorInstance.value.val() !== newValue
     ) {
+      // 额外检查：如果新值为空但编辑器有内容，可能是意外清空，需要谨慎处理
+      const currentContent = editorInstance.value.val()
+      if (newValue === '' && currentContent && currentContent.trim() !== '') {
+        // 记录警告但不立即清空，让用户决定
+        console.warn('检测到可能的意外内容清空，请确认是否要清空编辑器内容')
+        // 这里可以选择不执行清空，或者延迟执行给用户确认的机会
+        // 暂时保持原有逻辑但增加警告
+      }
+
       editorInstance.value.val(newValue)
+      lastValidContent = newValue || lastValidContent // 保留上次有效内容
+
       // 更新值后重新应用样式
       setTimeout(() => setupIframeStyles(), 50)
     }
@@ -1196,7 +1216,14 @@ const updateLanguage = (language) => {
  */
 const updateContent = (newContent) => {
   if (editorInstance.value && newContent !== undefined) {
+    // 检查是否是意外的空内容
+    const currentContent = editorInstance.value.val()
+    if (newContent === '' && currentContent && currentContent.trim() !== '') {
+      console.warn('updateContent: 检测到可能的意外内容清空')
+    }
+
     editorInstance.value.val(newContent)
+    lastValidContent = newContent || lastValidContent // 更新有效内容记录
     setTimeout(() => setupIframeStyles(), 50)
   }
 }

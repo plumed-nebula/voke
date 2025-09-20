@@ -61,8 +61,12 @@ const translations = {
 
     // 图片上传 - 链接输入
     insertImageLink: '插入图片链接',
+    insertBatchLinks: '批量插入链接',
     imageLinkPlaceholder: '请输入图片链接 (如: https://example.com/image.jpg)',
+    batchLinkPlaceholder:
+      '请输入图片链接，每行一个\n例如：\nhttps://example.com/image1.jpg\nhttps://example.com/image2.png',
     linkHint: '支持 JPG、PNG、GIF、WebP 等图片格式',
+    batchProcessing: '正在处理批量链接...',
 
     // 图片上传 - 进度和状态
     uploadingImage: '正在上传图片...',
@@ -77,6 +81,8 @@ const translations = {
     pleaseEnterValidLink: '请输入有效的图片链接',
     invalidLinkFormat: '链接格式不正确，请输入完整的URL',
     notImageFileConfirm: '这个链接可能不是图片文件，确定要插入吗？',
+    batchLinkConfirm: '发现 {invalid} 个无效链接，是否继续插入有效的 {valid} 个链接？',
+    batchProcessFailed: '批量处理失败',
 
     // API 配置错误
     apiKeyRequired:
@@ -229,8 +235,12 @@ const translations = {
 
     // Image upload - link input
     insertImageLink: 'Insert Image Link',
+    insertBatchLinks: 'Insert Batch Links',
     imageLinkPlaceholder: 'Enter image link (e.g: https://example.com/image.jpg)',
+    batchLinkPlaceholder:
+      'Enter image links, one per line\nExample:\nhttps://example.com/image1.jpg\nhttps://example.com/image2.png',
     linkHint: 'Supports JPG, PNG, GIF, WebP and other image formats',
+    batchProcessing: 'Processing batch links...',
 
     // Image upload - progress and status
     uploadingImage: 'Uploading image...',
@@ -245,6 +255,8 @@ const translations = {
     pleaseEnterValidLink: 'Please enter a valid image link',
     invalidLinkFormat: 'Invalid link format, please enter a complete URL',
     notImageFileConfirm: 'This link may not be an image file, are you sure you want to insert it?',
+    batchLinkConfirm: 'Found {invalid} invalid links, continue with {valid} valid links?',
+    batchProcessFailed: 'Batch processing failed',
 
     // API configuration errors
     apiKeyRequired:
