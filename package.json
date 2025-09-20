@@ -1,6 +1,9 @@
 {
   "name": "voke",
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "A modern BBCode editor with integrated image hosting",
+  "author": "Voke Team",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "engines": {
