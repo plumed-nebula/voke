@@ -135,8 +135,9 @@ const getInitialContent = (language, useAutoSave = autoSaveEnabled.value) => {
       return savedContent
     }
   }
-  // 否则使用默认内容
-  return defaultContent[language]
+  // 否则使用默认内容，统一语言格式映射
+  const mappedLanguage = language === 'zh-cn' ? 'zh' : language === 'en' ? 'en' : 'zh'
+  return defaultContent[mappedLanguage]
 }
 
 const initializeApp = () => {
@@ -201,9 +202,11 @@ const changeLanguage = (language) => {
   saveSettings({ language: language })
 
   // 发送语言变化事件给编辑器
+  // 编辑器期望 'zh' 或 'en' 格式，需要映射 'zh-cn' -> 'zh'
+  const editorLanguage = language === 'zh-cn' ? 'zh' : language === 'en' ? 'en' : 'zh'
   window.dispatchEvent(
     new CustomEvent('language-changed', {
-      detail: { language: language },
+      detail: { language: editorLanguage },
     }),
   )
 
@@ -413,6 +416,7 @@ onMounted(() => {
       :save-status="saveStatus"
       :auto-save-enabled="autoSaveEnabled"
       :current-language="currentLanguage"
+      :current-theme="currentTheme"
       @toggle-theme="toggleTheme"
       @toggle-auto-save="toggleAutoSave"
       @change-language="changeLanguage"

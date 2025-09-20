@@ -194,10 +194,14 @@ const props = defineProps({
     type: String,
     default: 'zh',
   },
+  currentTheme: {
+    type: String,
+    default: 'light',
+    validator: (value) => ['light', 'dark'].includes(value),
+  },
 })
 
 // ===== 响应式状态 =====
-const isDark = ref(false)
 const isLanguageDropdownOpen = ref(false)
 
 // 使用计算属性映射props到本地状态
@@ -208,24 +212,12 @@ const currentLanguage = computed(() => {
   const lang = props.currentLanguage
   return lang === 'zh' ? 'zh-cn' : lang === 'en' ? 'en' : 'zh-cn'
 })
+const isDark = computed(() => props.currentTheme === 'dark')
 
 // ===== 主题管理 =====
 // 获取保存状态文本
 const getSaveStatusText = () => {
   return t(saveStatus.value)
-}
-function initTheme() {
-  const savedTheme = localStorage.getItem('theme')
-  if (savedTheme) {
-    isDark.value = savedTheme === 'dark'
-  } else {
-    isDark.value = window.matchMedia('(prefers-color-scheme: dark)').matches
-  }
-  applyTheme()
-}
-
-function applyTheme() {
-  document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light')
 }
 
 // ===== 事件处理 =====
@@ -240,7 +232,6 @@ const emit = defineEmits([
 ])
 
 function toggleTheme() {
-  isDark.value = !isDark.value
   emit('toggle-theme')
 }
 
@@ -299,11 +290,6 @@ function openSettings() {
 }
 
 // ===== 监听器 =====
-watch(isDark, (newValue) => {
-  localStorage.setItem('theme', newValue ? 'dark' : 'light')
-  applyTheme()
-})
-
 // 监听关键状态变化，重新计算顶栏高度
 watch(
   [() => props.autoSaveEnabled, () => props.saveStatus],
@@ -315,7 +301,6 @@ watch(
 
 // ===== 初始化 =====
 onMounted(() => {
-  initTheme()
   updateTopbarHeight()
   // 监听窗口大小变化
   window.addEventListener('resize', updateTopbarHeight)

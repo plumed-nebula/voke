@@ -158,9 +158,11 @@ function sanitizeToolbar(tb) {
  * @returns {Object} 编辑器配置对象
  */
 function buildOptions() {
-  // 根据当前语言设置locale
+  // 根据当前语言设置locale，统一处理语言格式
   const currentLang = localStorage.getItem('language') || 'zh'
-  const locale = currentLang === 'zh' ? 'zh-cn' : 'en'
+  // 将 'zh-cn' 映射为 'zh'，保持与编辑器内容和界面的一致性
+  const normalizedLang = currentLang === 'zh-cn' ? 'zh' : currentLang === 'en' ? 'en' : 'zh'
+  const locale = normalizedLang === 'zh' ? 'zh-cn' : 'en'
 
   const base = {
     format: 'bbcode',
@@ -1241,7 +1243,9 @@ const setupLanguageHandling = () => {
 
   // 初始化时设置语言
   const savedLanguage = localStorage.getItem('language') || 'zh'
-  updateLanguage(savedLanguage)
+  // 统一语言格式：将 'zh-cn' 映射为 'zh'
+  const normalizedLanguage = savedLanguage === 'zh-cn' ? 'zh' : savedLanguage === 'en' ? 'en' : 'zh'
+  updateLanguage(normalizedLanguage)
 
   // 清理事件监听器
   onBeforeUnmount(() => {

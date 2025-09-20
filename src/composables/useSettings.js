@@ -67,7 +67,21 @@ export function useSettings() {
   const loadSettings = () => {
     try {
       // 从localStorage加载各项设置
-      const savedTheme = localStorage.getItem('theme') || DEFAULT_SETTINGS.theme
+      const savedTheme = localStorage.getItem('theme')
+      let theme = DEFAULT_SETTINGS.theme
+
+      if (savedTheme) {
+        // 如果有保存的主题设置，使用保存的设置
+        theme = savedTheme
+      } else {
+        // 如果没有保存的主题设置，检查系统偏好
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          theme = 'dark'
+        } else {
+          theme = 'light'
+        }
+      }
+
       const savedLanguage = localStorage.getItem('language') || DEFAULT_SETTINGS.language
       const savedAutoSave = localStorage.getItem('autoSave') === 'true'
 
@@ -76,7 +90,7 @@ export function useSettings() {
 
       settings.value = {
         ...DEFAULT_SETTINGS,
-        theme: savedTheme,
+        theme: theme,
         language: savedLanguage,
         autoSaveEnabled: savedAutoSave,
         ...customSettings,
