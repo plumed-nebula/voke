@@ -102,7 +102,7 @@ function getSafeEditorContent() {
       currentContent === '' &&
       lastValidContent &&
       lastValidContent.trim() !== '' &&
-      timeSinceLastUpdate < 3000
+      timeSinceLastUpdate < 10000
     ) {
       console.warn('检测到可能的SCEditor内部状态问题，保护现有内容')
       return lastValidContent
