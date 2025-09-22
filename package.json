@@ -12,6 +12,8 @@
   "scripts": {
     "dev-backend": "nodemon server/dev-proxy.js",
     "dev": "concurrently \"npm:dev-backend\" \"vite\" --names \"backend,frontend\" --prefix-colors \"blue,green\"",
+    "sync-css": "node scripts/sync-css.js",
+    "prebuild": "npm run sync-css",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint . --fix",
