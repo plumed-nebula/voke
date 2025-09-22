@@ -185,6 +185,9 @@ function buildOptions() {
     format: 'bbcode',
     style: contentStyleUrl,
     locale: locale,
+    // 添加字体列表配置 - 中文字体在前，英文字体在后
+    fonts:
+      '微软雅黑,黑体,宋体,新宋体,Arial,Arial Black,Comic Sans MS,Courier New,Georgia,Impact,Sans-serif,Serif,Times New Roman,Trebuchet MS,Verdana',
   }
 
   // 合并用户选项，但确保style使用我们的自定义样式
@@ -598,6 +601,16 @@ function initializeEditor() {
     }
   })
 
+  // 监听格式化命令完成事件，确保字体、颜色等格式化操作触发自动保存
+  editorInstance.value.bind('aftercommand', () => {
+    setTimeout(() => {
+      if (!isInitializing) {
+        const content = getSafeEditorContent()
+        emit('update:value', content)
+      }
+    }, 100)
+  })
+
   // 监听源码模式切换
   editorInstance.value.bind('selectionchanged', () => {
     if (!editorInstance.value) return
@@ -840,6 +853,22 @@ function setupDropdownPositioning() {
               // 如果找不到触发按钮，也要显示下拉框
               node.classList.add('positioned')
             }
+
+            // 为下拉框选项添加点击监听，确保字体和颜色修改触发自动保存
+            const dropdownOptions = node.querySelectorAll(
+              'a, .sceditor-font-option, .sceditor-fontsize-option, .sceditor-color-option',
+            )
+            dropdownOptions.forEach((option) => {
+              option.addEventListener('click', () => {
+                // 延迟检查内容变化，确保格式化操作完成后再触发保存
+                setTimeout(() => {
+                  if (!isInitializing && editorInstance.value) {
+                    const content = getSafeEditorContent()
+                    emit('update:value', content)
+                  }
+                }, 150) // 稍微增加延迟，确保SCEditor完成格式化操作
+              })
+            })
           }, 10)
         }
       })
@@ -877,6 +906,42 @@ function setupDropdownPositioning() {
       }, 50)
     }
   })
+
+  // 为已存在的下拉框选项添加事件监听
+  const addDropdownOptionListeners = () => {
+    const existingDropdowns = container.querySelectorAll('.sceditor-dropdown')
+    existingDropdowns.forEach((dropdown) => {
+      const dropdownOptions = dropdown.querySelectorAll(
+        'a, .sceditor-font-option, .sceditor-fontsize-option, .sceditor-color-option',
+      )
+      dropdownOptions.forEach((option) => {
+        // 检查是否已经添加过监听器
+        if (!option.dataset.saveListenerAdded) {
+          option.dataset.saveListenerAdded = 'true'
+          option.addEventListener('click', () => {
+            setTimeout(() => {
+              if (!isInitializing && editorInstance.value) {
+                const content = getSafeEditorContent()
+                emit('update:value', content)
+              }
+            }, 150)
+          })
+        }
+      })
+    })
+  }
+
+  // 立即检查现有下拉框
+  addDropdownOptionListeners()
+
+  // 定期检查是否有新的下拉框选项（因为有些下拉框可能是动态创建的）
+  const dropdownCheckInterval = setInterval(() => {
+    if (!editor.value?.parentNode) {
+      clearInterval(dropdownCheckInterval)
+      return
+    }
+    addDropdownOptionListeners()
+  }, 1000)
 }
 
 /**

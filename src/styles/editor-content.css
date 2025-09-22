@@ -471,6 +471,27 @@
   font-size: inherit !important;
 }
 
+/* 为中文字体添加特定样式预览 */
+.sceditor-font-option[data-font*='宋体'] font,
+.sceditor-font-option font[face*='宋体'] {
+  font-family: '宋体', SimSun, serif !important;
+}
+
+.sceditor-font-option[data-font*='新宋体'] font,
+.sceditor-font-option font[face*='新宋体'] {
+  font-family: '新宋体', NSimSun, serif !important;
+}
+
+.sceditor-font-option[data-font*='黑体'] font,
+.sceditor-font-option font[face*='黑体'] {
+  font-family: '黑体', SimHei, sans-serif !important;
+}
+
+.sceditor-font-option[data-font*='微软雅黑'] font,
+.sceditor-font-option font[face*='微软雅黑'] {
+  font-family: '微软雅黑', 'Microsoft YaHei', sans-serif !important;
+}
+
 /* 字体大小选择器特殊样式 */
 .sceditor-fontsize-option {
   font-size: 10px !important;
@@ -1184,6 +1205,73 @@ sub {
 }
 .sceditor-size-7 {
   font-size: 1.8em !important;
+}
+
+/* 字体家族类 - 支持中文字体 */
+font[face='宋体'],
+.sceditor-font-songti {
+  font-family: '宋体', SimSun, serif !important;
+}
+
+font[face='新宋体'],
+.sceditor-font-nsimsun {
+  font-family: '新宋体', NSimSun, serif !important;
+}
+
+font[face='黑体'],
+.sceditor-font-heiti {
+  font-family: '黑体', SimHei, sans-serif !important;
+}
+
+font[face='微软雅黑'],
+.sceditor-font-yahei {
+  font-family: '微软雅黑', 'Microsoft YaHei', sans-serif !important;
+}
+
+/* 保持原有英文字体支持 */
+font[face='Arial'],
+.sceditor-font-arial {
+  font-family: Arial, sans-serif !important;
+}
+
+font[face='Arial Black'],
+.sceditor-font-arial-black {
+  font-family: 'Arial Black', sans-serif !important;
+}
+
+font[face='Comic Sans MS'],
+.sceditor-font-comic {
+  font-family: 'Comic Sans MS', cursive !important;
+}
+
+font[face='Courier New'],
+.sceditor-font-courier {
+  font-family: 'Courier New', monospace !important;
+}
+
+font[face='Georgia'],
+.sceditor-font-georgia {
+  font-family: Georgia, serif !important;
+}
+
+font[face='Impact'],
+.sceditor-font-impact {
+  font-family: Impact, sans-serif !important;
+}
+
+font[face='Times New Roman'],
+.sceditor-font-times {
+  font-family: 'Times New Roman', serif !important;
+}
+
+font[face='Trebuchet MS'],
+.sceditor-font-trebuchet {
+  font-family: 'Trebuchet MS', sans-serif !important;
+}
+
+font[face='Verdana'],
+.sceditor-font-verdana {
+  font-family: Verdana, sans-serif !important;
 }
 
 /* 选中文本样式 */
