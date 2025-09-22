@@ -59,6 +59,7 @@ const emit = defineEmits([
 let destroyed = false // 组件是否已销毁
 let isInitializing = true // 是否正在初始化
 let lastValidContent = '' // 最后一次有效的内容，用于防止内容意外丢失
+let lastContentUpdateTime = 0 // 最后一次内容更新的时间戳
 
 /**
  * 安全地获取编辑器内容，防止在图片加载期间获取到不完整的内容
@@ -92,6 +93,21 @@ function getSafeEditorContent() {
         return lastValidContent
       }
     }
+    // 添加额外的保护：如果当前内容为空但有有效的lastValidContent，
+    // 且距离上次内容更新时间很短，可能是SCEditor内部状态问题
+    const now = Date.now()
+    const timeSinceLastUpdate = lastContentUpdateTime ? now - lastContentUpdateTime : 0
+
+    if (
+      currentContent === '' &&
+      lastValidContent &&
+      lastValidContent.trim() !== '' &&
+      timeSinceLastUpdate < 3000
+    ) {
+      console.warn('检测到可能的SCEditor内部状态问题，保护现有内容')
+      return lastValidContent
+    }
+
     // 用户可能是故意清空内容
     lastValidContent = '' // 只在确认用户意图清空时才清除
     return currentContent
@@ -117,6 +133,7 @@ function getSafeEditorContent() {
   // 更新最后有效内容
   if (currentContent && currentContent.trim() !== '') {
     lastValidContent = currentContent
+    lastContentUpdateTime = Date.now()
   }
 
   return currentContent
@@ -1199,6 +1216,8 @@ const updateLanguage = (language) => {
             if (editorInstance.value && currentContent) {
               editorInstance.value.val(currentContent)
               setupIframeStyles()
+            } else {
+              console.warn('updateLanguage: 内容恢复失败')
             }
           }, 100)
         }, 50)
