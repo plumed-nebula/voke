@@ -8,7 +8,13 @@ import {
   mergeFormatOptions,
   convertToAlignParam,
   convertFromAlignParam,
+  convertToListParam,
+  convertFromListParam,
 } from '@/utils/formatUtils'
+import { useTranslation } from '@/utils/i18n'
+
+// 国际化
+const { t } = useTranslation()
 
 /**
  * DOM引用
@@ -37,6 +43,8 @@ const props = defineProps({
   autoNewlineAfterImage: { type: Boolean, default: false },
   imageAlignment: { type: String, default: 'none' },
   useAlignParamOnCopy: { type: Boolean, default: false },
+  /** 导出到剪贴板时自动格式化列表 */
+  autoFormatListOnCopy: { type: Boolean, default: false },
 })
 
 /**
@@ -83,13 +91,13 @@ function getSafeEditorContent() {
 
       // 只有在有图片正在加载时才认为是意外清空
       if (hasLoadingImages) {
-        console.warn('编辑器内容意外为空（检测到图片加载中），使用上次有效内容')
+        console.warn(t('editorContentUnexpectedlyEmpty'))
         return lastValidContent
       }
 
       // 如果没有图片加载，检查是否是在初始化期间，初始化期间也保护内容
       if (isInitializing) {
-        console.warn('编辑器初始化期间检测到内容清空，使用上次有效内容')
+        console.warn(t('editorInitContentCleared'))
         return lastValidContent
       }
     }
@@ -104,7 +112,7 @@ function getSafeEditorContent() {
       lastValidContent.trim() !== '' &&
       timeSinceLastUpdate < 10000
     ) {
-      console.warn('检测到可能的SCEditor内部状态问题，保护现有内容')
+      console.warn(t('detectedSceditorStateIssue'))
       return lastValidContent
     }
 
@@ -125,7 +133,7 @@ function getSafeEditorContent() {
       lastValidContent &&
       currentContent.length < lastValidContent.length * 0.8
     ) {
-      console.warn('检测到图片正在加载且内容不完整，使用上次有效内容')
+      console.warn(t('imageLoadingIncompleteContent'))
       return lastValidContent
     }
   }
@@ -244,14 +252,19 @@ function copyContentToClipboard(content) {
   // 如果启用了格式转换，将对齐标签转换为align参数格式
   let processedContent = content
   if (props.useAlignParamOnCopy) {
-    processedContent = convertToAlignParam(content)
+    processedContent = convertToAlignParam(processedContent)
+  }
+
+  // 如果启用了自动格式化列表，将列表标签转换为list参数格式
+  if (props.autoFormatListOnCopy) {
+    processedContent = convertToListParam(processedContent)
   }
 
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard
       .writeText(processedContent)
       .then(() => {
-        showCopyNotification('内容已复制到剪贴板！')
+        showCopyNotification(t('contentCopiedToClipboard'))
       })
       .catch(() => {
         fallbackCopyText(processedContent)
@@ -278,12 +291,12 @@ function fallbackCopyText(text) {
     textArea.select()
     const successful = document.execCommand('copy')
     if (successful) {
-      showCopyNotification('内容已复制到剪贴板！')
+      showCopyNotification(t('contentCopiedToClipboard'))
     } else {
-      showCopyNotification('复制失败，请手动复制内容')
+      showCopyNotification(t('copyFailed'))
     }
   } catch {
-    showCopyNotification('复制失败，请手动复制内容')
+    showCopyNotification(t('copyFailed'))
   } finally {
     document.body.removeChild(textArea)
   }
@@ -333,8 +346,8 @@ function insertImageAtCursor(bbcode, uploadResult) {
       position: editorInstance.value.getRangeHelper().selectedRange(),
     })
   } catch (error) {
-    console.error('插入图片失败:', error)
-    showCopyNotification('图片插入失败，请手动添加: ' + bbcode)
+    console.error(t('insertImageFailed'), error)
+    showCopyNotification(t('imageInsertFailedManual') + ': ' + bbcode)
   }
 }
 
@@ -367,7 +380,7 @@ function handleUploadSuccess(result) {
  * @param {Error} error - 错误对象
  */
 function handleUploadError(error) {
-  console.error('图片上传失败:', error)
+  console.error(t('imageUploadFailed'), error)
   emit('upload-error', error)
 }
 
@@ -386,10 +399,32 @@ function formatAlignmentTags() {
     emit('update:value', formattedContent)
 
     // 显示通知
-    showCopyNotification('对齐标签格式化完成')
+    showCopyNotification(t('alignTagsFormatCompleted'))
   } catch (error) {
-    console.error('格式化对齐标签失败:', error)
-    showCopyNotification('格式化失败，请稍后重试')
+    console.error(t('formatAlignmentTagsFailed'), error)
+    showCopyNotification(t('formatFailed'))
+  }
+}
+
+/**
+ * 格式化列表标签 - 将通用格式转换为可识别格式
+ */
+function formatListTags() {
+  if (!editorInstance.value) return
+
+  try {
+    const currentContent = getSafeEditorContent()
+    const formattedContent = convertFromListParam(currentContent)
+    editorInstance.value.val(formattedContent)
+
+    // 触发内容更新
+    emit('update:value', formattedContent)
+
+    // 显示通知
+    showCopyNotification(t('listTagsFormatCompleted'))
+  } catch (error) {
+    console.error(t('formatListTagsFailed'), error)
+    showCopyNotification(t('formatFailed'))
   }
 }
 
@@ -418,7 +453,7 @@ function initializeEditor() {
   // 注册自定义导出命令，支持源码和WYSIWYG两种模式
   if (window.sceditor && window.sceditor.command) {
     window.sceditor.command.set('export', {
-      tooltip: '导出到剪贴板',
+      tooltip: t('exportToClipboard'),
       // 源码模式执行函数
       txtExec: function () {
         const content = this.val()
@@ -433,7 +468,7 @@ function initializeEditor() {
 
     // 覆盖默认的image命令，使用自定义图片上传功能
     window.sceditor.command.set('image', {
-      tooltip: '插入图片 (支持拖拽上传)',
+      tooltip: t('insertImageWithDragSupport'),
       // 源码模式执行函数
       txtExec: function () {
         showCustomImageUpload()
@@ -444,16 +479,18 @@ function initializeEditor() {
       },
     })
 
-    // 添加格式化对齐标签命令
+    // 合并格式化命令：对齐+列表
     window.sceditor.command.set('formatAlignment', {
-      tooltip: '格式化对齐标签',
+      tooltip: t('formatTags'),
       // 源码模式执行函数
       txtExec: function () {
         formatAlignmentTags()
+        formatListTags()
       },
       // WYSIWYG模式执行函数
       exec: function () {
         formatAlignmentTags()
+        formatListTags()
       },
     })
 
@@ -466,7 +503,7 @@ function initializeEditor() {
       window.sceditor.icons.material.image =
         '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z M12,11L16,15H13.5V18H10.5V15H8L12,11Z"/></svg>'
 
-      // 为格式化对齐标签按钮设置图标
+      // 为格式化标签按钮设置图标（复用对齐图标）
       window.sceditor.icons.material.formatAlignment =
         '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3,3H21V5H3V3M3,7H15V9H3V7M3,11H21V13H3V11M3,15H15V17H3V15M3,19H21V21H3V19Z"/></svg>'
     }
@@ -1123,7 +1160,7 @@ watch(
       const currentContent = editorInstance.value.val()
       if (newValue === '' && currentContent && currentContent.trim() !== '') {
         // 记录警告但不立即清空，让用户决定
-        console.warn('检测到可能的意外内容清空，请确认是否要清空编辑器内容')
+        console.warn(t('detectedAccidentalClear'))
         // 这里可以选择不执行清空，或者延迟执行给用户确认的机会
         // 暂时保持原有逻辑但增加警告
       }
@@ -1282,7 +1319,7 @@ const updateLanguage = (language) => {
               editorInstance.value.val(currentContent)
               setupIframeStyles()
             } else {
-              console.warn('updateLanguage: 内容恢复失败')
+              console.warn(t('updateLanguageContentRecoveryFailed'))
             }
           }, 100)
         }, 50)
@@ -1302,7 +1339,7 @@ const updateContent = (newContent) => {
     // 检查是否是意外的空内容
     const currentContent = editorInstance.value.val()
     if (newContent === '' && currentContent && currentContent.trim() !== '') {
-      console.warn('updateContent: 检测到可能的意外内容清空')
+      console.warn(t('updateContentAccidentalClear'))
     }
 
     editorInstance.value.val(newContent)

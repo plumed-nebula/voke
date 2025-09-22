@@ -19,6 +19,7 @@ const DEFAULT_SETTINGS = {
   autoNewlineAfterImage: false, // 图片插入后自动隔行
   imageAlignment: 'none', // 图片排版方式：left, right, justify, none
   useAlignParamOnCopy: false, // 复制时使用align参数格式
+  autoFormatListOnCopy: false, // 导出到剪贴板时自动格式化列表
 }
 
 /**

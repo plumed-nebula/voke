@@ -18,6 +18,15 @@ const translations = {
     insert: '插入',
     update: '更新',
     retry: '重试',
+    copy: '复制',
+
+    // 语言选项
+    chineseSimplified: '简体中文',
+    english: 'English',
+
+    // 复制和剪贴板
+    contentCopiedToClipboard: '内容已复制到剪贴板！',
+    copyFailed: '复制失败，请重试',
 
     // 主题和外观
     switchToLight: '切换到白天模式',
@@ -126,8 +135,15 @@ const translations = {
     alignNone: '无格式',
     useAlignParamOnCopy: '复制时使用通用格式',
     useAlignParamDescription: '复制到剪贴板时将对齐标签转换为通用的align参数格式',
+    autoFormatListOnCopy: '导出时自动格式化列表',
+    autoFormatListDescription: '开启后，复制/导出内容时会自动将列表标签格式化为标准格式',
     formatAlignment: '格式化对齐标签',
     formatAlignmentTooltip: '将通用格式转换为可识别的对齐标签',
+    formatTags: '格式化对齐/列表标签',
+    formatTagsTooltip: '格式化对齐和列表标签',
+    alignTagsFormatCompleted: '对齐标签格式化完成',
+    listTagsFormatCompleted: '列表标签格式化完成',
+    formatFailed: '格式化失败，请稍后重试',
 
     // 时间选项
     halfSecond: '0.5秒',
@@ -176,6 +192,37 @@ const translations = {
     pleaseEnterValidImageLink: '请输入有效的图片链接',
     invalidUrlFormat: '链接格式不正确，请输入完整的URL',
     notImageFileConfirmation: '这个链接可能不是图片文件，确定要插入吗？',
+
+    // BBcode编辑器相关消息
+    editorContentUnexpectedlyEmpty: '编辑器内容意外为空（检测到图片加载中），使用上次有效内容',
+    editorInitContentCleared: '编辑器初始化期间检测到内容清空，使用上次有效内容',
+    detectedSceditorStateIssue: '检测到可能的SCEditor内部状态问题，保护现有内容',
+    imageLoadingIncompleteContent: '检测到图片正在加载且内容不完整，使用上次有效内容',
+    detectedAccidentalClear: '检测到可能的意外内容清空，请确认是否要清空编辑器内容',
+    insertImageFailed: '插入图片失败',
+    imageInsertFailedManual: '图片插入失败，请手动添加',
+    imageUploadFailed: '图片上传失败',
+    formatAlignmentTagsFailed: '格式化对齐标签失败',
+    formatListTagsFailed: '格式化列表标签失败',
+    updateLanguageContentRecoveryFailed: '内容恢复失败',
+    updateContentAccidentalClear: '检测到可能的意外内容清空',
+
+    // 编辑器工具提示
+    exportToClipboard: '导出到剪贴板',
+    insertImageWithDragSupport: '插入图片 (支持拖拽上传)',
+
+    // App.vue 相关消息
+    noContentToSave: '没有内容可保存',
+    fileSavedAs: '文件已保存为',
+    saveFailed: '保存失败',
+    loadedFromFile: '已从文件加载内容',
+    loadFailed: '加载失败',
+    fileLoadError: '加载文件时出错',
+    settingsSaved: '设置已保存',
+    documentCreated: '已创建新文档',
+    settingsSaveFailed: '设置保存失败',
+    allLocalDataCleared: '所有本地数据已清除',
+    clearDataFailed: '清除数据失败',
   },
 
   en: {
@@ -191,6 +238,15 @@ const translations = {
     insert: 'Insert',
     update: 'Update',
     retry: 'Retry',
+    copy: 'Copy',
+
+    // Language options
+    chineseSimplified: 'Simplified Chinese',
+    english: 'English',
+
+    // Copy and clipboard
+    contentCopiedToClipboard: 'Content copied to clipboard!',
+    copyFailed: 'Copy failed, please try again',
 
     // Theme and appearance
     switchToLight: 'Switch to Light Mode',
@@ -302,8 +358,16 @@ const translations = {
     useAlignParamOnCopy: 'Use Universal Format on Copy',
     useAlignParamDescription:
       'Convert alignment tags to universal align parameter format when copying to clipboard',
+    autoFormatListOnCopy: 'Auto Format Lists on Export',
+    autoFormatListDescription:
+      'Automatically format list tags to standard format when copying/exporting content',
     formatAlignment: 'Format Alignment Tags',
     formatAlignmentTooltip: 'Convert universal format to recognizable alignment tags',
+    formatTags: 'Format Alignment/List Tags',
+    formatTagsTooltip: 'Format alignment and list tags',
+    alignTagsFormatCompleted: 'Alignment tags formatted successfully',
+    listTagsFormatCompleted: 'List tags formatted successfully',
+    formatFailed: 'Format failed, please try again later',
 
     // Time options
     halfSecond: '0.5s',
@@ -353,6 +417,42 @@ const translations = {
     invalidUrlFormat: 'Invalid link format, please enter a complete URL',
     notImageFileConfirmation:
       'This link may not be an image file, are you sure you want to insert it?',
+
+    // BBcode editor related messages
+    editorContentUnexpectedlyEmpty:
+      'Editor content unexpectedly empty (image loading detected), using last valid content',
+    editorInitContentCleared:
+      'Content cleared during editor initialization, using last valid content',
+    detectedSceditorStateIssue:
+      'Detected possible SCEditor internal state issue, protecting existing content',
+    imageLoadingIncompleteContent:
+      'Detected image loading with incomplete content, using last valid content',
+    detectedAccidentalClear:
+      'Detected possible accidental content clear, please confirm if you want to clear the editor content',
+    insertImageFailed: 'Failed to insert image',
+    imageInsertFailedManual: 'Image insertion failed, please add manually',
+    imageUploadFailed: 'Image upload failed',
+    formatAlignmentTagsFailed: 'Failed to format alignment tags',
+    formatListTagsFailed: 'Failed to format list tags',
+    updateLanguageContentRecoveryFailed: 'Content recovery failed',
+    updateContentAccidentalClear: 'Detected possible accidental content clear',
+
+    // Editor tooltips
+    exportToClipboard: 'Export to Clipboard',
+    insertImageWithDragSupport: 'Insert Image (Drag & Drop Supported)',
+
+    // App.vue related messages
+    noContentToSave: 'No content to save',
+    fileSavedAs: 'File saved as',
+    saveFailed: 'Save failed',
+    loadedFromFile: 'Content loaded from file',
+    loadFailed: 'Load failed',
+    fileLoadError: 'Error loading file',
+    settingsSaved: 'Settings saved',
+    documentCreated: 'Document created',
+    settingsSaveFailed: 'Settings save failed',
+    allLocalDataCleared: 'All local data cleared',
+    clearDataFailed: 'Failed to clear data',
   },
 }
 

@@ -310,7 +310,7 @@ async function uploadFiles(files) {
 
         // 检查上传结果，如果上传失败则抛出错误
         if (!result.success) {
-          throw new Error(result.error || '上传失败')
+          throw new Error(result.error || t('uploadFailed'))
         }
 
         // 记录成功结果

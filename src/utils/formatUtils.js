@@ -272,3 +272,86 @@ export function formatAlignmentTags(bbcode, direction = 'toParam') {
   }
   return bbcode
 }
+
+/**
+ * 将标准BBCode列表标签转换为list参数格式
+ * [ul][li]项目[/li][/ul] -> [list][*]项目[/list]
+ * [ol][li]项目[/li][/ol] -> [list=1][*]项目[/list]
+ * @param {string} bbcode - 原始BBCode内容
+ * @returns {string} 转换后的BBCode内容
+ */
+export function convertToListParam(bbcode) {
+  if (!bbcode || typeof bbcode !== 'string') {
+    return bbcode
+  }
+
+  let convertedCode = bbcode
+
+  // 处理有序列表 [ol] -> [list=1]
+  convertedCode = convertedCode.replace(/\[ol\]([\s\S]*?)\[\/ol\]/g, (match, content) => {
+    // 将内部的 [li][/li] 转换为 [*]
+    const convertedContent = content.replace(/\[li\]([\s\S]*?)\[\/li\]/g, '[*]$1')
+    return `[list=1]${convertedContent}[/list]`
+  })
+
+  // 处理无序列表 [ul] -> [list]
+  convertedCode = convertedCode.replace(/\[ul\]([\s\S]*?)\[\/ul\]/g, (match, content) => {
+    // 将内部的 [li][/li] 转换为 [*]
+    const convertedContent = content.replace(/\[li\]([\s\S]*?)\[\/li\]/g, '[*]$1')
+    return `[list]${convertedContent}[/list]`
+  })
+
+  return convertedCode
+}
+
+/**
+ * 将list参数格式转换为标准BBCode列表标签
+ * [list][*]项目[/list] -> [ul][li]项目[/li][/ul]
+ * [list=1][*]项目[/list] -> [ol][li]项目[/li][/ol]
+ * @param {string} bbcode - 原始BBCode内容
+ * @returns {string} 转换后的BBCode内容
+ */
+export function convertFromListParam(bbcode) {
+  if (!bbcode || typeof bbcode !== 'string') {
+    return bbcode
+  }
+
+  let convertedCode = bbcode
+
+  // 处理有序列表 [list=1] -> [ol]
+  convertedCode = convertedCode.replace(/\[list=1\]([\s\S]*?)\[\/list\]/g, (match, content) => {
+    // 将内部的 [*] 转换为 [li][/li]
+    const convertedContent = content.replace(
+      /\[\*\]([\s\S]*?)(?=\[\*\]|\[\/list\]|$)/g,
+      '[li]$1[/li]',
+    )
+    return `[ol]${convertedContent}[/ol]`
+  })
+
+  // 处理无序列表 [list] -> [ul]（不带参数的）
+  convertedCode = convertedCode.replace(/\[list\]([\s\S]*?)\[\/list\]/g, (match, content) => {
+    // 将内部的 [*] 转换为 [li][/li]
+    const convertedContent = content.replace(
+      /\[\*\]([\s\S]*?)(?=\[\*\]|\[\/list\]|$)/g,
+      '[li]$1[/li]',
+    )
+    return `[ul]${convertedContent}[/ul]`
+  })
+
+  return convertedCode
+}
+
+/**
+ * 批量格式化BBCode内容的列表标签
+ * @param {string} bbcode - BBCode内容
+ * @param {string} direction - 转换方向 ('toParam' | 'fromParam')
+ * @returns {string} 格式化后的内容
+ */
+export function formatListTags(bbcode, direction = 'toParam') {
+  if (direction === 'toParam') {
+    return convertToListParam(bbcode)
+  } else if (direction === 'fromParam') {
+    return convertFromListParam(bbcode)
+  }
+  return bbcode
+}

@@ -229,6 +229,11 @@ const changeLanguage = (language) => {
     const newContent = getInitialContent(language, false) // 强制使用默认内容
     loadContentSafely(newContent) // 使用延迟加载
   }
+
+  // 强制刷新页面以确保语言切换完全生效
+  setTimeout(() => {
+    window.location.reload()
+  }, 100) // 稍微延迟一下确保设置已保存
 }
 
 /**
@@ -257,7 +262,7 @@ const handleNewDocument = async () => {
   // 更新保存状态
   saveStatus.value = 'saved'
 
-  showFileNotification(t('newDocumentCreated') || '已创建新文档', 'success')
+  showFileNotification(t('newDocumentCreated') || t('documentCreated'), 'success')
 }
 
 /**
@@ -265,15 +270,15 @@ const handleNewDocument = async () => {
  */
 const handleSaveToFile = async () => {
   if (!content.value || content.value.trim() === '') {
-    showFileNotification('没有内容可保存', 'error')
+    showFileNotification(t('noContentToSave'), 'error')
     return
   }
 
   const result = saveToFile(content.value)
   if (result.success) {
-    showFileNotification(`文件已保存为: ${result.filename}`, 'success')
+    showFileNotification(`${t('fileSavedAs')}: ${result.filename}`, 'success')
   } else {
-    showFileNotification(`保存失败: ${result.error}`, 'error')
+    showFileNotification(`${t('saveFailed')}: ${result.error}`, 'error')
   }
 }
 
@@ -292,7 +297,7 @@ const handleLoadFromFile = async () => {
 
     if (result.success) {
       loadContentSafely(result.content) // 使用延迟加载
-      showFileNotification(`已从文件加载内容: ${file.name}`, 'success')
+      showFileNotification(`${t('loadedFromFile')}: ${file.name}`, 'success')
 
       // 如果启用了自动保存，保存加载的内容
       if (autoSaveEnabled.value) {
@@ -300,10 +305,10 @@ const handleLoadFromFile = async () => {
         saveStatus.value = 'saved'
       }
     } else {
-      showFileNotification(`加载失败: ${result.error}`, 'error')
+      showFileNotification(`${t('loadFailed')}: ${result.error}`, 'error')
     }
   } catch (error) {
-    showFileNotification(`加载文件时出错: ${error.message}`, 'error')
+    showFileNotification(`${t('fileLoadError')}: ${error.message}`, 'error')
   }
 }
 
@@ -329,9 +334,9 @@ const handleSaveSettings = (newSettings) => {
     // 应用主题
     applyTheme(currentTheme.value)
 
-    showFileNotification('设置已保存', 'success')
+    showFileNotification(t('settingsSaved'), 'success')
   } else {
-    showFileNotification(`设置保存失败: ${result.error}`, 'error')
+    showFileNotification(`${t('settingsSaveFailed')}: ${result.error}`, 'error')
   }
 }
 
@@ -345,9 +350,9 @@ const handleClearData = () => {
     loadContentSafely(defaultContent[settings.value.language]) // 使用延迟加载
     saveStatus.value = 'saved'
 
-    showFileNotification('所有本地数据已清除', 'success')
+    showFileNotification(t('allLocalDataCleared'), 'success')
   } else {
-    showFileNotification(`清除数据失败: ${result.error}`, 'error')
+    showFileNotification(`${t('clearDataFailed')}: ${result.error}`, 'error')
   }
 }
 
@@ -435,6 +440,7 @@ onMounted(() => {
         :auto-newline-after-image="settings.autoNewlineAfterImage"
         :image-alignment="settings.imageAlignment"
         :use-align-param-on-copy="settings.useAlignParamOnCopy"
+        :auto-format-list-on-copy="settings.autoFormatListOnCopy"
         @ready="handleEditorReady"
         @image-inserted="handleImageInserted"
       />

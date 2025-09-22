@@ -181,6 +181,22 @@
             </div>
             <p class="setting-description">{{ t('useAlignParamDescription') }}</p>
           </div>
+
+          <div class="setting-item">
+            <label class="setting-label">{{ t('autoFormatListOnCopy') }}</label>
+            <div class="setting-control">
+              <label class="checkbox-label">
+                <input
+                  type="checkbox"
+                  v-model="localSettings.autoFormatListOnCopy"
+                  class="checkbox-input"
+                />
+                <span class="checkbox-custom"></span>
+                {{ t('autoFormatListOnCopy') }}
+              </label>
+            </div>
+            <p class="setting-description">{{ t('autoFormatListDescription') }}</p>
+          </div>
         </div>
       </div>
 
@@ -218,6 +234,7 @@ const props = defineProps({
       autoNewlineAfterImage: false,
       imageAlignment: 'none',
       useAlignParamOnCopy: false,
+      autoFormatListOnCopy: false,
     }),
   },
   currentTheme: {
@@ -284,6 +301,7 @@ const resetSettings = () => {
     autoNewlineAfterImage: false,
     imageAlignment: 'none',
     useAlignParamOnCopy: false,
+    autoFormatListOnCopy: false,
   }
 }
 
