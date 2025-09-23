@@ -197,7 +197,7 @@ async function uploadToSDA1Proxy(file, onProgress) {
       body: uint8Array, // 发送Uint8Array，与Buffer行为一致
       headers: {
         'Content-Type': 'application/octet-stream',
-        'User-Agent': 'Mozilla/5.0 (compatible; Voke-Editor/1.0)',
+        // 'User-Agent': 'Mozilla/5.0 (compatible; Voke-Editor/1.0)',
         'Content-Length': uint8Array.length.toString(), // 添加Content-Length
       },
     })

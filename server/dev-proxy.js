@@ -23,10 +23,26 @@ app.use(
   }),
 )
 
-// 处理原始数据
+// 🔧 修复：优化body处理顺序，确保multipart数据正确处理
+// 首先处理 multipart/form-data（保留原始数据）
 app.use(
   express.raw({
-    type: '*/*',
+    type: 'multipart/form-data',
+    limit: '100mb',
+    verify: (req, res, buf) => {
+      req.rawBody = buf
+    },
+  }),
+)
+
+// 处理其他类型的原始数据
+app.use(
+  express.raw({
+    type: (req) => {
+      const contentType = req.headers['content-type'] || ''
+      // 只处理非multipart和非json的数据
+      return !contentType.includes('multipart/') && !contentType.includes('application/json')
+    },
     limit: '100mb',
     verify: (req, res, buf) => {
       req.rawBody = buf
@@ -37,14 +53,20 @@ app.use(
 // 处理 JSON 数据
 app.use(express.json({ limit: '100mb' }))
 
-// 处理 form-data
+// 处理 form-data（URL编码）
 app.use(express.urlencoded({ extended: true, limit: '100mb' }))
 
 // 主代理路由
 app.all('/', async (req, res) => {
+  console.log(`\n🔄 [Dev Proxy] ${req.method} ${req.url}`)
+  console.log(`📋 [Headers] User-Agent: ${req.headers['user-agent']?.substring(0, 50)}...`)
+  console.log(`📋 [Headers] Content-Type: ${req.headers['content-type'] || 'undefined'}`)
+  console.log(`📋 [Headers] Content-Length: ${req.headers['content-length'] || 'undefined'}`)
+
   try {
     const targetRaw = req.query.target
     if (!targetRaw) {
+      console.log('❌ [Error] Missing target parameter')
       return res.status(400).json({ error: 'Missing target parameter' })
     }
 
@@ -52,20 +74,15 @@ app.all('/', async (req, res) => {
     const decoded = decodeURIComponent(targetRaw.trim())
     const forwardUrl = new URL(decoded.startsWith('http') ? decoded : 'https://' + decoded)
 
+    console.log(`🎯 [Target] Original: ${targetRaw}`)
+    console.log(`🎯 [Target] Decoded: ${decoded}`)
+    console.log(`🎯 [Target] Final URL: ${forwardUrl.toString()}`)
+
     // 把外层 URL 的其它查询参数追加到 forwardUrl（但跳过 target 本身）
     for (const [k, v] of Object.entries(req.query)) {
       if (k === 'target') continue
       // 如果外层想覆盖某个参数，可改成 set()；这里用 append() 保持 target 的原始参数优先
       forwardUrl.searchParams.append(k, v)
-    }
-
-    // 可选：如果是 imgbb 且环境变量中有 key，自动注入（客户端无需传 key）
-    if (
-      forwardUrl.hostname.includes('imgbb.com') &&
-      process.env.IMGBB_KEY &&
-      !forwardUrl.searchParams.get('key')
-    ) {
-      forwardUrl.searchParams.set('key', process.env.IMGBB_KEY)
     }
 
     // 准备请求选项
@@ -83,37 +100,64 @@ app.all('/', async (req, res) => {
       }
     }
 
-    // 🔧 不再强制禁用压缩，保留浏览器原始的 Accept-Encoding
-    // 让 node-fetch 自动处理压缩（就像 Worker 的原生 fetch）
+    // 🔧 修复压缩问题：移除 Accept-Encoding 以避免解码问题
+    delete fetchOptions.headers['accept-encoding']
 
     // 处理请求体
     if (!['GET', 'HEAD'].includes(req.method.toUpperCase())) {
       if (req.rawBody && req.rawBody.length > 0) {
         fetchOptions.body = req.rawBody
+        console.log(`📤 [Body] Using rawBody, size: ${req.rawBody.length} bytes`)
       } else if (req.body && Object.keys(req.body).length > 0) {
         if (req.headers['content-type']?.includes('application/json')) {
           fetchOptions.body = JSON.stringify(req.body)
+          console.log(`📤 [Body] Using JSON body, size: ${fetchOptions.body.length} bytes`)
         } else {
           fetchOptions.body = req.body
+          console.log('📤 [Body] Using form body')
         }
+      } else {
+        console.log('📤 [Body] No body data found - this may be a problem for POST requests')
+        console.log('📤 [Body] Request details:', {
+          hasRawBody: !!req.rawBody,
+          rawBodyLength: req.rawBody?.length || 0,
+          hasBody: !!req.body,
+          bodyKeys: req.body ? Object.keys(req.body) : [],
+          contentType: req.headers['content-type'],
+        })
       }
+    } else {
+      console.log('📤 [Body] GET/HEAD request, no body')
     }
+
+    console.log(`⏳ [Request] Sending ${req.method} to ${forwardUrl.toString()}`)
+    const startTime = Date.now()
 
     // 发送请求（完全透明转发）
     const fetch = (await import('node-fetch')).default
     const upstream = await fetch(forwardUrl.toString(), fetchOptions)
 
-    // 获取响应体（不解析，直接转发）
-    const responseBody = await upstream.buffer()
-
-    // 设置响应头（透明转发）
+    const requestTime = Date.now() - startTime
+    console.log(
+      `⚡ [Response] Status: ${upstream.status} ${upstream.statusText} (${requestTime}ms)`,
+    )
+    console.log('📋 [Response Headers]:')
     upstream.headers.forEach((value, key) => {
-      // 只跳过传输层相关的头部
+      console.log(`    ${key}: ${value}`)
+    })
+
+    // 设置响应状态码
+    res.status(upstream.status)
+
+    // 设置响应头（透明转发，模仿 Worker 行为）
+    upstream.headers.forEach((value, key) => {
+      // 跳过传输层和压缩相关的头部，避免解码问题
       if (
         ![
           'connection',
           'transfer-encoding',
-          'content-length', // Express 会自动设置正确的 content-length
+          'content-length', // 让流式传输自动处理
+          'content-encoding', // 🔧 修复：不转发压缩编码头，避免客户端解码失败
         ].includes(key.toLowerCase())
       ) {
         res.set(key, value)
@@ -125,13 +169,77 @@ app.all('/', async (req, res) => {
     res.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
     res.set('Access-Control-Allow-Headers', '*')
 
-    // 透明转发响应体
-    res.status(upstream.status).send(responseBody)
+    // 🔧 修复：使用流式传输替代 buffer()，完全模仿 Worker 行为
+    console.log('🌊 [Stream] Starting stream transfer...')
+
+    let transferredBytes = 0
+    const streamStartTime = Date.now()
+
+    // 监听数据传输
+    upstream.body.on('data', (chunk) => {
+      transferredBytes += chunk.length
+      console.log(`📊 [Stream] Transferred: ${transferredBytes} bytes`)
+    })
+
+    upstream.body.on('end', () => {
+      const streamTime = Date.now() - streamStartTime
+      console.log(`✅ [Stream] Transfer completed: ${transferredBytes} bytes in ${streamTime}ms`)
+    })
+
+    // 处理流传输错误
+    upstream.body.on('error', (streamError) => {
+      console.error('❌ [Stream] Stream error:', streamError)
+      console.error('❌ [Stream] Error details:', {
+        message: streamError.message,
+        code: streamError.code,
+        stack: streamError.stack,
+      })
+      if (!res.headersSent) {
+        res.status(500).json({
+          error: 'Stream error',
+          message: streamError.message,
+          code: streamError.code,
+        })
+      }
+    })
+
+    res.on('error', (resError) => {
+      console.error('❌ [Response] Response error:', resError)
+      console.error('❌ [Response] Error details:', {
+        message: resError.message,
+        code: resError.code,
+      })
+    })
+
+    res.on('close', () => {
+      console.log('🔌 [Response] Client connection closed')
+    })
+
+    res.on('finish', () => {
+      const totalTime = Date.now() - startTime
+      console.log(`🎉 [Success] Request completed successfully in ${totalTime}ms`)
+    })
+
+    upstream.body.pipe(res)
   } catch (error) {
-    console.error('[Dev Proxy] Error:', error)
+    console.error('💥 [Fatal Error] Proxy error:', error)
+    console.error('💥 [Fatal Error] Error details:', {
+      message: error.message,
+      code: error.code,
+      status: error.status,
+      stack: error.stack,
+    })
+    console.error('💥 [Fatal Error] Request details:', {
+      method: req.method,
+      url: req.url,
+      headers: req.headers,
+      query: req.query,
+    })
+
     res.status(500).json({
       error: 'Proxy internal error',
       message: error.message,
+      code: error.code,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
     })
   }

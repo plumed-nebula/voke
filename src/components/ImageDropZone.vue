@@ -300,17 +300,48 @@ async function uploadFiles(files) {
       currentFileName.value = file.name
 
       try {
-        const result = await uploadImage(file, props.imageHost, props.apiKey, (fileProgress) => {
-          // 计算总进度：已完成文件的进度 + 当前文件的进度
-          const completedProgress = (i / files.length) * 100
-          const currentProgress = fileProgress / files.length
-          progress.value = Math.round(completedProgress + currentProgress)
-          emit('upload-progress', progress.value)
-        })
+        let result = null
+        let uploadError = null
 
-        // 检查上传结果，如果上传失败则抛出错误
-        if (!result.success) {
-          throw new Error(result.error || t('uploadFailed'))
+        // 第一次上传尝试
+        try {
+          result = await uploadImage(file, props.imageHost, props.apiKey, (fileProgress) => {
+            // 计算总进度：已完成文件的进度 + 当前文件的进度
+            const completedProgress = (i / files.length) * 100
+            const currentProgress = fileProgress / files.length
+            progress.value = Math.round(completedProgress + currentProgress)
+            emit('upload-progress', progress.value)
+          })
+
+          // 检查上传结果，如果上传失败则记录错误
+          if (!result.success) {
+            uploadError = new Error(result.error || t('uploadFailed'))
+            throw uploadError
+          }
+        } catch (firstAttemptError) {
+          uploadError = firstAttemptError
+
+          // 如果上传被取消，不进行重试
+          if (!canCancel.value) {
+            throw uploadError
+          }
+
+          // 等待500ms后进行重试
+          await new Promise((resolve) => setTimeout(resolve, 500))
+
+          // 第二次上传尝试（重试）
+          result = await uploadImage(file, props.imageHost, props.apiKey, (fileProgress) => {
+            // 计算总进度：已完成文件的进度 + 当前文件的进度
+            const completedProgress = (i / files.length) * 100
+            const currentProgress = fileProgress / files.length
+            progress.value = Math.round(completedProgress + currentProgress)
+            emit('upload-progress', progress.value)
+          })
+
+          // 检查重试结果
+          if (!result.success) {
+            throw new Error(result.error || t('uploadFailed'))
+          }
         }
 
         // 记录成功结果
