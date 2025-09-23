@@ -369,8 +369,6 @@ const handleClearData = () => {
 const saveEditorContent = (contentToSave, force = false) => {
   // 检查内容是否为空（除非强制保存）
   if (!force && (!contentToSave || contentToSave.trim() === '')) {
-    // 内容为空时，清除已保存的内容以保持一致性
-    localStorage.removeItem('editorContent')
     saveStatus.value = 'saved' // 空内容视为已保存状态
     return false // 返回false表示未保存（因为内容为空）
   }
