@@ -397,6 +397,49 @@ const clearLocalData = async () => {
   padding: 0;
 }
 
+/* === 自定义滚动条样式 - 与编辑器保持一致 === */
+/* 浅色主题滚动条 */
+.settings-content::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.settings-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.settings-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.settings-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.settings-content::-webkit-scrollbar-corner {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* 深色主题滚动条 */
+[data-theme='dark'] .settings-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme='dark'] .settings-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme='dark'] .settings-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+[data-theme='dark'] .settings-content::-webkit-scrollbar-corner {
+  background: rgba(255, 255, 255, 0.05);
+}
+
 .setting-section {
   padding: 24px;
   border-bottom: 1px solid var(--border-color, #e5e7eb);
@@ -447,6 +490,45 @@ const clearLocalData = async () => {
   background: var(--bg-color, white);
   color: var(--text-color, #1f2937);
   font-size: 14px;
+  transition: border-color 0.2s ease;
+}
+
+.select-input:focus {
+  outline: none;
+  border-color: var(--primary-color, #3b82f6);
+}
+
+/* 选择框滚动条样式（如果有长列表） */
+.select-input::-webkit-scrollbar {
+  width: 8px;
+}
+
+.select-input::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.select-input::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.select-input::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* 深色主题选择框滚动条 */
+[data-theme='dark'] .select-input::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme='dark'] .select-input::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme='dark'] .select-input::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .setting-value {
@@ -572,12 +654,46 @@ const clearLocalData = async () => {
   color: var(--text-primary, #111827);
   font-size: 14px;
   transition: border-color 0.2s ease;
+  overflow-x: auto;
+}
+
+/* 输入框滚动条样式 */
+.text-input::-webkit-scrollbar {
+  height: 4px;
+}
+
+.text-input::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 2px;
+}
+
+.text-input::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 2px;
+  transition: background 0.2s ease;
+}
+
+.text-input::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
 }
 
 [data-theme='dark'] .text-input {
   background: #374151;
   color: #f9fafb;
   border-color: #4b5563;
+}
+
+/* 深色主题输入框滚动条 */
+[data-theme='dark'] .text-input::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme='dark'] .text-input::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme='dark'] .text-input::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .text-input:focus {
