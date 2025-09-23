@@ -183,13 +183,12 @@ const toggleAutoSave = () => {
     localStorage.removeItem('editorContent')
     saveStatus.value = 'saved'
   } else {
-    // 如果开启自动保存，检查内容是否非空后再保存
-    if (content.value && content.value.trim() !== '') {
+    // 如果开启自动保存，使用封装的保存函数
+    if (saveEditorContent(content.value)) {
       saveStatus.value = 'saving'
-      setWithExpiry('editorContent', content.value, settings.value.storageExpiry)
       saveStatus.value = 'saved'
     } else {
-      saveStatus.value = 'saved' // 空内容视为已保存状态
+      saveStatus.value = 'saved' // 空内容也视为已保存状态
     }
   }
 }
@@ -299,9 +298,14 @@ const handleLoadFromFile = async () => {
       loadContentSafely(result.content) // 使用延迟加载
       showFileNotification(`${t('loadedFromFile')}: ${file.name}`, 'success')
 
-      // 如果启用了自动保存，保存加载的内容
+      // 如果启用了自动保存，使用封装的保存函数保存加载的内容
       if (autoSaveEnabled.value) {
-        setWithExpiry('editorContent', result.content, settings.value.storageExpiry)
+        if (saveEditorContent(result.content)) {
+          saveStatus.value = 'saved'
+        } else {
+          saveStatus.value = 'saved' // 空内容也视为已保存状态
+        }
+      } else {
         saveStatus.value = 'saved'
       }
     } else {
@@ -356,6 +360,30 @@ const handleClearData = () => {
   }
 }
 
+/**
+ * 安全保存编辑器内容到localStorage
+ * @param {string} contentToSave - 要保存的内容
+ * @param {boolean} force - 是否强制保存（忽略空内容检查）
+ * @returns {boolean} 是否成功保存
+ */
+const saveEditorContent = (contentToSave, force = false) => {
+  // 检查内容是否为空（除非强制保存）
+  if (!force && (!contentToSave || contentToSave.trim() === '')) {
+    // 内容为空时，清除已保存的内容以保持一致性
+    localStorage.removeItem('editorContent')
+    saveStatus.value = 'saved' // 空内容视为已保存状态
+    return false // 返回false表示未保存（因为内容为空）
+  }
+
+  try {
+    setWithExpiry('editorContent', contentToSave, settings.value.storageExpiry)
+    return true // 保存成功
+  } catch (error) {
+    console.error('保存编辑器内容失败:', error)
+    return false // 保存失败
+  }
+}
+
 // 改进的自动保存逻辑
 const handleContentChange = (newContent) => {
   // 如果是程序内部更新内容，跳过自动保存逻辑
@@ -364,18 +392,6 @@ const handleContentChange = (newContent) => {
   }
 
   if (autoSaveEnabled.value && newContent !== undefined) {
-    // 检查内容是否为空
-    if (!newContent || newContent.trim() === '') {
-      // 内容为空时，清除定时器和已保存的内容
-      if (autoSaveTimer) {
-        clearTimeout(autoSaveTimer)
-      }
-      // 清除localStorage中的内容以保持一致性
-      localStorage.removeItem('editorContent')
-      saveStatus.value = 'saved' // 空内容视为已保存状态
-      return
-    }
-
     // 标记为未保存状态
     saveStatus.value = 'unsaved'
 
@@ -387,7 +403,8 @@ const handleContentChange = (newContent) => {
     // 设置新的定时器，延迟保存
     autoSaveTimer = setTimeout(() => {
       saveStatus.value = 'saving'
-      setWithExpiry('editorContent', newContent, settings.value.storageExpiry)
+      // 使用封装的保存函数，它会自动处理空内容
+      saveEditorContent(newContent)
       saveStatus.value = 'saved'
     }, AUTOSAVE_DELAY.value)
   }
