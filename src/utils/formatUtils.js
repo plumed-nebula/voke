@@ -41,8 +41,13 @@ export function formatImageBBCode(bbcode, options = {}) {
       formattedCode += '\n'
     }
 
-    // 添加额外的换行来创建空行
+    // 添加额外的换行来创建空行（双换行）
     if (!formattedCode.endsWith('\n\n')) {
+      formattedCode += '\n'
+    }
+  } else {
+    // 即使不启用自动隔行，也添加一个基本的换行符
+    if (!formattedCode.endsWith('\n')) {
       formattedCode += '\n'
     }
   }
