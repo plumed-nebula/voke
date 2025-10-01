@@ -21,7 +21,8 @@ Voke is a powerful BBCode editor that streamlines the content creation process b
 ### 🖼️ **Integrated Image Hosting**
 
 - **Drag & Drop Upload**: Simply drag images into the editor for instant upload
-- **Multiple Image Hosts**: Support for FreeImage.host, SDA1.dev, and local testing
+- **Multiple Image Hosts**: Support for FreeImage.host, SDA1.dev, Pixhost, and local testing
+- **Custom Image Host**: Configure your own image hosting API with flexible parameters
 - **Batch Link Processing**: Paste multiple image URLs at once for bulk insertion
 - **Smart Format Detection**: Automatic validation of image formats and URLs
 - **No External Tools Required**: Upload directly from the editor interface
@@ -160,8 +161,14 @@ voke/
 
 Access settings via the gear icon in the top bar:
 
-- **Default Image Host**: Choose between FreeImage.host, SDA1.dev, or local testing
+- **Default Image Host**: Choose between FreeImage.host, SDA1.dev, Pixhost, Local Testing, or Custom
 - **API Keys**: Configure FreeImage.host API key for higher limits
+- **Pixhost Settings**: Select content type (SFW/NSFW) for Pixhost uploads
+- **Custom Image Host**: Configure your own image hosting service with:
+  - Custom upload URL with parameter support
+  - URL parameters (supports `$filename$` placeholder)
+  - Response pattern parsing (`$json:path$` or `$text$`)
+  - Optional CORS proxy support
 - **Image Formatting**: Set default alignment and auto-newline preferences
 - **Copy Formatting**: Enable universal align parameter format for compatibility
 
@@ -177,7 +184,45 @@ Access settings via the gear icon in the top bar:
 | ------------------ | ------------ | -------- | ------------------------------------- |
 | **FreeImage.host** | Optional     | 64MB     | High reliability, optional API key    |
 | **SDA1.dev**       | No           | 5MB      | No registration required, fast upload |
+| **Pixhost**        | No           | 12MB     | SFW/NSFW content support              |
+| **Custom**         | Varies       | Varies   | Use your own image hosting API        |
 | **Local Testing**  | No           | 10MB     | Base64 preview, no network required   |
+
+### Custom Image Host Configuration
+
+Voke allows you to integrate any image hosting service that accepts binary file uploads. Configure your custom host with:
+
+1. **Upload URL**: The API endpoint for image uploads (e.g., `https://api.example.com/upload`)
+2. **URL Parameters**: Add custom parameters to the upload URL
+   - Use `$filename$` as a placeholder for the actual filename
+   - Example: `key=value` or `filename=$filename$`
+3. **Response Pattern**: Specify how to extract the image URL from the API response
+   - `$json:path$` - Extract from JSON response (e.g., `$json:data.url$` for `{"data":{"url":"..."}}`)
+   - `$json:url$` - For root-level JSON properties (e.g., `{"url":"..."}`)
+   - `$text$` - Use the entire response as the URL (for plain text responses)
+4. **CORS Proxy**: Enable if the API doesn't support CORS (uses proxy.pinni.xyz)
+
+**Example Configurations:**
+
+```javascript
+// Example 1: API with nested JSON response
+URL: https://api.imghost.com/upload
+Parameters: apikey=YOUR_KEY, filename=$filename$
+Response Pattern: $json:data.image.url$
+// For response: {"data":{"image":{"url":"https://..."}}}
+
+// Example 2: Simple JSON response
+URL: https://img.example.com/api/upload
+Parameters: (none)
+Response Pattern: $json:url$
+// For response: {"url":"https://..."}
+
+// Example 3: Plain text response
+URL: https://simple.imghost.com/upload
+Parameters: (none)
+Response Pattern: $text$
+// For response: https://example.com/image.jpg
+```
 
 ## 🎨 Theming
 
