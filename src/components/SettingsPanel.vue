@@ -86,6 +86,7 @@
                 <option value="freeimage">{{ t('freeimageHost') }}</option>
                 <option value="sda1">{{ t('sda1Host') }}</option>
                 <option value="pixhost">{{ t('pixhostHost') }}</option>
+                <option value="custom">{{ t('customImageHost') }}</option>
               </select>
             </div>
             <p class="setting-description">
@@ -143,6 +144,103 @@
             <p class="setting-description">
               {{ t('pixhostContentTypeDescription') }}
             </p>
+          </div>
+
+          <!-- 自定义图床配置 -->
+          <div
+            v-if="localSettings.imageHost === 'custom'"
+            class="setting-section custom-host-config"
+          >
+            <h4 class="sub-section-title">{{ t('customHostConfig') }}</h4>
+
+            <!-- URL 输入 -->
+            <div class="setting-item">
+              <label class="setting-label">{{ t('customHostUrl') }} *</label>
+              <div class="setting-control">
+                <input
+                  v-model="localSettings.customImageHost.url"
+                  type="text"
+                  class="text-input"
+                  :placeholder="t('customHostUrlPlaceholder')"
+                />
+              </div>
+              <p class="setting-description">{{ t('customHostUrlDescription') }}</p>
+            </div>
+
+            <!-- URL 参数 -->
+            <div class="setting-item">
+              <label class="setting-label">{{ t('customHostUrlParams') }}</label>
+              <div class="url-params-editor">
+                <div
+                  v-for="(param, idx) in localSettings.customImageHost.urlParams"
+                  :key="idx"
+                  class="param-row"
+                >
+                  <input
+                    v-model="param.key"
+                    type="text"
+                    class="param-input"
+                    :placeholder="t('customHostParamKeyPlaceholder')"
+                  />
+                  <input
+                    v-model="param.value"
+                    type="text"
+                    class="param-input"
+                    :placeholder="t('customHostParamValuePlaceholder')"
+                  />
+                  <button
+                    type="button"
+                    class="remove-param-btn"
+                    @click="removeUrlParam(idx)"
+                    title="删除参数"
+                  >
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                      <path
+                        d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <button type="button" class="add-param-btn" @click="addUrlParam">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
+                  </svg>
+                  {{ t('customHostAddParam') }}
+                </button>
+              </div>
+              <p class="setting-description">{{ t('customHostParamDescription') }}</p>
+            </div>
+
+            <!-- 响应解析模式 -->
+            <div class="setting-item">
+              <label class="setting-label">{{ t('customHostResponsePattern') }} *</label>
+              <div class="setting-control">
+                <input
+                  v-model="localSettings.customImageHost.responsePattern"
+                  type="text"
+                  class="text-input"
+                  :placeholder="t('customHostResponsePatternPlaceholder')"
+                />
+              </div>
+              <p class="setting-description">{{ t('customHostResponsePatternDescription') }}</p>
+            </div>
+
+            <!-- 使用代理 -->
+            <div class="setting-item">
+              <label class="setting-label">{{ t('customHostUseProxy') }}</label>
+              <div class="setting-control">
+                <label class="checkbox-label">
+                  <input
+                    type="checkbox"
+                    v-model="localSettings.customImageHost.useProxy"
+                    class="checkbox-input"
+                  />
+                  <span class="checkbox-custom"></span>
+                  {{ t('customHostUseProxy') }}
+                </label>
+              </div>
+              <p class="setting-description">{{ t('customHostUseProxyDescription') }}</p>
+            </div>
           </div>
 
           <div class="setting-item">
@@ -273,19 +371,40 @@ const emit = defineEmits(['close', 'save', 'clear-data'])
 /**
  * 本地设置状态
  */
-const localSettings = ref({ ...props.settings })
+const localSettings = ref({
+  ...props.settings,
+  // 确保 customImageHost 存在
+  customImageHost: props.settings.customImageHost || {
+    url: '',
+    urlParams: [],
+    responsePattern: '$json:data.url$',
+    useProxy: true,
+  },
+})
 const clearing = ref(false)
 const showApiKey = ref(false)
 
 /**
- * 监听外部设置变化
+ * 监听外部设置变化（仅在面板关闭时更新）
+ * 避免在用户输入时覆盖本地修改
  */
 watch(
-  () => props.settings,
-  (newSettings) => {
-    localSettings.value = { ...newSettings }
+  () => props.visible,
+  (isVisible) => {
+    if (isVisible) {
+      // 面板打开时，重新加载外部设置
+      localSettings.value = {
+        ...props.settings,
+        // 确保 customImageHost 存在
+        customImageHost: props.settings.customImageHost || {
+          url: '',
+          urlParams: [],
+          responsePattern: '$json:data.url$',
+          useProxy: true,
+        },
+      }
+    }
   },
-  { deep: true },
 )
 
 /**
@@ -317,7 +436,30 @@ const resetSettings = () => {
     imageAlignment: 'none',
     useAlignParamOnCopy: false,
     autoFormatListOnCopy: false,
+    customImageHost: {
+      url: '',
+      urlParams: [],
+      responsePattern: '$json:data.url$',
+      useProxy: true,
+    },
   }
+}
+
+/**
+ * 添加 URL 参数
+ */
+const addUrlParam = () => {
+  if (!localSettings.value.customImageHost.urlParams) {
+    localSettings.value.customImageHost.urlParams = []
+  }
+  localSettings.value.customImageHost.urlParams.push({ key: '', value: '' })
+}
+
+/**
+ * 删除 URL 参数
+ */
+const removeUrlParam = (index) => {
+  localSettings.value.customImageHost.urlParams.splice(index, 1)
 }
 
 /**
@@ -812,6 +954,119 @@ const clearLocalData = async () => {
 
 .checkbox-label:hover .checkbox-custom {
   border-color: var(--brand-primary, #3b82f6);
+}
+
+/* 自定义图床配置样式 */
+.custom-host-config {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--bg-secondary, #f9fafb);
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #e5e7eb);
+}
+
+[data-theme='dark'] .custom-host-config {
+  background: #1f2937;
+  border-color: #374151;
+}
+
+.sub-section-title {
+  margin: 0 0 16px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-color, #1f2937);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sub-section-title::before {
+  content: '';
+  width: 3px;
+  height: 16px;
+  background: var(--primary-color, #3b82f6);
+  border-radius: 2px;
+}
+
+/* URL 参数编辑器 */
+.url-params-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.param-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.param-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 6px;
+  background: var(--bg-color, white);
+  color: var(--text-color, #1f2937);
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+}
+
+.param-input:focus {
+  outline: none;
+  border-color: var(--primary-color, #3b82f6);
+}
+
+[data-theme='dark'] .param-input {
+  background: #374151;
+  border-color: #4b5563;
+  color: #f9fafb;
+}
+
+.remove-param-btn {
+  padding: 8px;
+  background: #ef4444;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.remove-param-btn:hover {
+  background: #dc2626;
+}
+
+.remove-param-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.add-param-btn {
+  padding: 8px 16px;
+  background: var(--primary-color, #3b82f6);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.2s ease;
+  align-self: flex-start;
+}
+
+.add-param-btn:hover {
+  background: var(--primary-hover, #2563eb);
+}
+
+.add-param-btn svg {
+  width: 16px;
+  height: 16px;
 }
 
 /* 链接样式 */

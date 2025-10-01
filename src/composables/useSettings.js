@@ -21,6 +21,14 @@ const DEFAULT_SETTINGS = {
   imageAlignment: 'none', // 图片排版方式：left, right, justify, none
   useAlignParamOnCopy: false, // 复制时使用align参数格式
   autoFormatListOnCopy: false, // 导出到剪贴板时自动格式化列表
+
+  // 自定义图床配置
+  customImageHost: {
+    url: '', // 上传API地址
+    urlParams: [], // URL参数数组: [{key: 'token', value: 'xxx'}, {key: 'filename', value: '$filename$'}]
+    responsePattern: '$json:data.url$', // 响应解析模式: $json:path$ 或 $text$
+    useProxy: true, // 是否使用代理（规避CORS）
+  },
 }
 
 /**

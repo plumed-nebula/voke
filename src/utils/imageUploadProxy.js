@@ -35,6 +35,13 @@ const IMAGE_HOSTS = {
     supportedFormats: ['jpg', 'jpeg', 'png', 'gif'],
     requiresApiKey: false,
   },
+  CUSTOM: {
+    name: () => t('customImageHost'),
+    id: 'custom',
+    maxSize: 50 * 1024 * 1024, // 50MB (自定义图床默认限制)
+    supportedFormats: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'],
+    requiresApiKey: false,
+  },
   LOCAL: {
     name: () => t('localTest'),
     id: 'local',
@@ -42,6 +49,83 @@ const IMAGE_HOSTS = {
     supportedFormats: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'],
     requiresApiKey: false,
   },
+}
+
+/**
+ * 解析 JSON 路径（支持 $json:path$ 格式）
+ * @param {Object} jsonData - JSON 数据对象
+ * @param {string} path - 路径字符串，如 "data.url" 或 "result.image.link"
+ * @returns {any} 解析后的值
+ */
+function parseJsonPath(jsonData, path) {
+  if (!path) return null
+
+  const keys = path.split('.')
+  let value = jsonData
+
+  for (const key of keys) {
+    if (value && typeof value === 'object' && key in value) {
+      value = value[key]
+    } else {
+      return null
+    }
+  }
+
+  return value
+}
+
+/**
+ * 解析响应模式（支持 $json:path$ 和 $text$ 格式）
+ * @param {Response} response - Fetch 响应对象
+ * @param {string} pattern - 解析模式，如 "$json:data.url$" 或 "$text$"
+ * @returns {Promise<string>} 解析后的 URL
+ */
+async function parseResponsePattern(response, pattern) {
+  if (!pattern) {
+    throw new Error(t('responsePatternNotConfigured'))
+  }
+
+  // 匹配 $json:path$ 格式
+  const jsonMatch = pattern.match(/^\$json:(.+)\$$/)
+  if (jsonMatch) {
+    const path = jsonMatch[1]
+    const jsonData = await response.json()
+    const url = parseJsonPath(jsonData, path)
+
+    if (!url) {
+      // 提供更详细的错误信息，帮助用户调试
+      console.error('[自定义图床] 路径解析失败:', {
+        配置的路径: path,
+        实际返回的JSON: jsonData,
+        提示: `请检查路径是否正确。如果 URL 在根级别，使用 $json:url$；如果在嵌套对象中，使用 $json:data.url$ 等格式`,
+      })
+      throw new Error(
+        `${t('failedToParseResponse')}: ${t('pathNotFound')} "${path}"。` +
+          `实际返回: ${JSON.stringify(jsonData).substring(0, 200)}...`,
+      )
+    }
+
+    return String(url)
+  }
+
+  // 匹配 $text$ 格式
+  if (pattern === '$text$') {
+    return await response.text()
+  }
+
+  // 其他情况：直接返回 pattern 作为固定值
+  return pattern
+}
+
+/**
+ * 替换 URL 参数中的占位符
+ * @param {string} value - 参数值
+ * @param {string} filename - 文件名
+ * @returns {string} 替换后的值
+ */
+function replaceUrlParamPlaceholders(value, filename) {
+  if (!value) return value
+  return value.replace(/\$filename\$/g, filename)
 }
 
 /**
@@ -369,12 +453,161 @@ async function uploadToLocal(file, onProgress) {
 }
 
 /**
+ * 上传到自定义图床
+ * @param {File} file - 图片文件
+ * @param {Function} onProgress - 进度回调
+ * @param {Object} config - 自定义图床配置 {url, urlParams, responsePattern, useProxy}
+ * @returns {Promise<Object>} 上传结果
+ */
+async function uploadToCustom(file, onProgress, config) {
+  const hostConfig = IMAGE_HOSTS.CUSTOM
+  const validation = validateImageFile(file, hostConfig)
+  if (!validation.valid) {
+    throw new Error(validation.errors.join('; '))
+  }
+
+  // 验证配置
+  if (!config || !config.url) {
+    throw new Error(t('customHostUrlNotConfigured'))
+  }
+
+  if (!config.responsePattern) {
+    throw new Error(t('responsePatternNotConfigured'))
+  }
+
+  try {
+    onProgress?.(10)
+
+    // 构建带参数的 URL
+    let targetUrl = config.url
+    if (config.urlParams && Array.isArray(config.urlParams) && config.urlParams.length > 0) {
+      const params = new URLSearchParams()
+      config.urlParams.forEach((param) => {
+        if (param.key && param.value) {
+          // 替换 $filename$ 占位符
+          const value = replaceUrlParamPlaceholders(param.value, file.name)
+          params.append(param.key, value)
+        }
+      })
+      const paramString = params.toString()
+      if (paramString) {
+        targetUrl += (targetUrl.includes('?') ? '&' : '?') + paramString
+      }
+    }
+
+    onProgress?.(30)
+
+    // 决定是否使用代理
+    const uploadUrl = config.useProxy ? buildProxyUrl(targetUrl) : targetUrl
+
+    onProgress?.(50)
+
+    // 转换为二进制数据（支持 --data-binary 格式）
+    const arrayBuffer = await file.arrayBuffer()
+    const uint8Array = new Uint8Array(arrayBuffer)
+
+    // 根据文件类型自动判断 Content-Type
+    let contentType = file.type || 'application/octet-stream'
+
+    // 如果浏览器没有正确识别，根据文件扩展名补充
+    if (contentType === 'application/octet-stream') {
+      const extension = file.name.split('.').pop().toLowerCase()
+      const mimeTypes = {
+        jpg: 'image/jpeg',
+        jpeg: 'image/jpeg',
+        png: 'image/png',
+        gif: 'image/gif',
+        bmp: 'image/bmp',
+        webp: 'image/webp',
+        svg: 'image/svg+xml',
+        ico: 'image/x-icon',
+      }
+      contentType = mimeTypes[extension] || contentType
+    }
+
+    // 发送二进制数据
+    const response = await fetch(uploadUrl, {
+      method: 'POST',
+      body: uint8Array,
+      headers: {
+        'Content-Type': contentType,
+        'Content-Length': uint8Array.length.toString(),
+      },
+    })
+
+    onProgress?.(80)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('[自定义图床] 上传失败:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText,
+      })
+      throw new Error(`${t('uploadFailedHttp')}: HTTP ${response.status} - ${errorText}`)
+    }
+
+    // 记录响应信息用于调试
+    console.log('[自定义图床] 响应状态:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries()),
+      contentType: response.headers.get('content-type'),
+    })
+
+    // 克隆响应以便多次读取
+    const responseClone = response.clone()
+
+    // 先尝试读取原始文本查看格式
+    let rawText = ''
+    try {
+      rawText = await responseClone.text()
+      console.log('[自定义图床] 原始响应内容:', rawText)
+
+      // 尝试解析为 JSON 查看结构
+      try {
+        const jsonData = JSON.parse(rawText)
+        console.log('[自定义图床] JSON 解析结果:', JSON.stringify(jsonData, null, 2))
+      } catch {
+        console.log('[自定义图床] 响应不是 JSON 格式，为纯文本')
+      }
+    } catch (readError) {
+      console.warn('[自定义图床] 无法读取响应文本:', readError)
+    }
+
+    // 根据配置的模式解析响应
+    console.log('[自定义图床] 使用解析模式:', config.responsePattern)
+    const imageUrl = await parseResponsePattern(response, config.responsePattern)
+    console.log('[自定义图床] 解析得到的图片URL:', imageUrl)
+
+    onProgress?.(100)
+
+    if (!imageUrl) {
+      throw new Error(t('failedToParseImageUrl'))
+    }
+
+    return {
+      success: true,
+      url: imageUrl,
+      deleteUrl: null,
+      host: 'custom',
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+      host: 'custom',
+    }
+  }
+}
+
+/**
  * 统一上传接口
  * @param {File} file - 图片文件
  * @param {string} host - 图床类型
  * @param {string} apiKey - API 密钥
  * @param {Function} onProgress - 进度回调
- * @param {Object} options - 额外选项 (例如: {contentType: '0'} for Pixhost)
+ * @param {Object} options - 额外选项 (例如: {contentType: '0'} for Pixhost, 或 {customConfig: {...}} for Custom)
  * @returns {Promise<Object>} 上传结果
  */
 export async function uploadImage(file, host = 'freeimage', apiKey = '', onProgress, options = {}) {
@@ -390,6 +623,8 @@ export async function uploadImage(file, host = 'freeimage', apiKey = '', onProgr
         return await uploadToSDA1Proxy(file, onProgress)
       case 'pixhost':
         return await uploadToPixhostProxy(file, onProgress, options)
+      case 'custom':
+        return await uploadToCustom(file, onProgress, options.customConfig)
       case 'local':
         return await uploadToLocal(file, onProgress)
       default:
@@ -479,6 +714,12 @@ export function getSupportedHosts() {
       description: t('viaProxy'),
     },
     {
+      id: 'custom',
+      name: t('customImageHost'),
+      requiresApiKey: false,
+      description: t('customImageHostDescription'),
+    },
+    {
       id: 'local',
       name: t('localTest'),
       requiresApiKey: false,
@@ -497,6 +738,7 @@ export function getHostConfig(hostId) {
     freeimage: IMAGE_HOSTS.FREEIMAGE,
     sda1: IMAGE_HOSTS.SDA1,
     pixhost: IMAGE_HOSTS.PIXHOST,
+    custom: IMAGE_HOSTS.CUSTOM,
     local: IMAGE_HOSTS.LOCAL,
   }
   return configs[hostId] || null

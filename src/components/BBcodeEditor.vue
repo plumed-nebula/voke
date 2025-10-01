@@ -40,6 +40,10 @@ const props = defineProps({
   imageHost: { type: String, default: 'freeimage' },
   imageApiKey: { type: String, default: '' },
   pixhostContentType: { type: String, default: '0' },
+  customImageHostConfig: {
+    type: Object,
+    default: () => ({ url: '', urlParams: [], responsePattern: '', useProxy: true }),
+  },
   useDirectImageLink: { type: Boolean, default: true },
   autoNewlineAfterImage: { type: Boolean, default: false },
   imageAlignment: { type: String, default: 'none' },
@@ -1126,6 +1130,14 @@ function setupIframeStyles() {
       scrollbar-width: thin;
       scrollbar-color: ${isDark ? 'rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.05)'};
     }
+
+    /* 图片最大宽度限制 */
+    img {
+      max-width: 80% !important;
+      height: auto !important;
+      display: block;
+      margin: 0 auto;
+    }
   `
 
   // 不再强制设置body样式，让CSS自然继承处理
@@ -1426,6 +1438,7 @@ onBeforeUnmount(() => {
       :image-host="imageHost"
       :api-key="imageApiKey"
       :pixhost-content-type="pixhostContentType"
+      :custom-image-host-config="customImageHostConfig"
       :auto-show="false"
       @insert-image="insertImageAtCursor"
       @upload-start="handleUploadStart"

@@ -118,6 +118,8 @@ const translations = {
     freeimageHost: 'FreeImage.host (通过代理)',
     sda1Host: 'SDA1.dev (通过代理)',
     pixhostHost: 'PiXhost.to (通过代理)',
+    customImageHost: '自定义图床',
+    customImageHostDescription: '配置您自己的图床API',
     freeimageApiKey: 'FreeImage.host API密钥 (可选)',
     apiKeyPlaceholder: '请输入您的API密钥（留空使用公共密钥）',
     showApiKey: '显示API密钥',
@@ -129,6 +131,35 @@ const translations = {
     pixhostSafeContent: '安全内容 (Safe)',
     pixhostNsfwContent: '成人内容 (NSFW)',
     pixhostContentTypeDescription: '选择上传到 PiXhost 的内容类型分类',
+
+    // 自定义图床配置
+    customHostConfig: '自定义图床配置',
+    customHostUrl: '上传 API 地址',
+    customHostUrlPlaceholder: '例如: https://api.example.com/upload',
+    customHostUrlDescription: '图床的上传接口地址（仅支持二进制POST上传）',
+    customHostUrlParams: 'URL 参数',
+    customHostAddParam: '添加参数',
+    customHostParamKey: '参数名',
+    customHostParamValue: '参数值',
+    customHostParamKeyPlaceholder: '例如: token',
+    customHostParamValuePlaceholder: '例如: your-token 或 $filename$',
+    customHostParamDescription: '使用 $filename$ 作为占位符将自动替换为当前文件名',
+    customHostResponsePattern: '响应解析模式',
+    customHostResponsePatternPlaceholder: '例如: $json:data.url$ 或 $text$',
+    customHostResponsePatternDescription:
+      '支持格式：$json:路径$ (如 $json:data.url$) 或 $text$ (纯文本响应)',
+    customHostUseProxy: '使用代理',
+    customHostUseProxyDescription: '开启后通过代理服务器上传，可以规避浏览器CORS限制',
+    customHostUrlRequired: '请配置自定义图床上传地址',
+    customHostResponsePatternRequired: '请配置响应解析模式',
+
+    // 自定义图床错误消息
+    customHostUrlNotConfigured: '自定义图床上传地址未配置',
+    responsePatternNotConfigured: '响应解析模式未配置',
+    failedToParseResponse: '响应解析失败',
+    pathNotFound: '路径不存在',
+    failedToParseImageUrl: '无法从响应中解析图片链接',
+
     autoNewlineAfterImage: '图片后自动隔行',
     autoNewlineDescription: '在插入图片后自动添加空行，创建更清晰的排版',
     imageAlignment: '图片排版',
@@ -346,6 +377,8 @@ const translations = {
     freeimageHost: 'FreeImage.host (via proxy)',
     sda1Host: 'SDA1.dev (via proxy)',
     pixhostHost: 'PiXhost.to (via proxy)',
+    customImageHost: 'Custom Image Host',
+    customImageHostDescription: 'Configure your own image host API',
     freeimageApiKey: 'FreeImage.host API Key (Optional)',
     apiKeyPlaceholder: 'Enter your API key (leave empty to use public key)',
     showApiKey: 'Show API key',
@@ -357,6 +390,36 @@ const translations = {
     pixhostSafeContent: 'Safe Content',
     pixhostNsfwContent: 'Adult Content (NSFW)',
     pixhostContentTypeDescription: 'Select content type classification for PiXhost uploads',
+
+    // Custom image host configuration
+    customHostConfig: 'Custom Image Host Configuration',
+    customHostUrl: 'Upload API URL',
+    customHostUrlPlaceholder: 'e.g., https://api.example.com/upload',
+    customHostUrlDescription: 'Image host upload API endpoint (binary POST only)',
+    customHostUrlParams: 'URL Parameters',
+    customHostAddParam: 'Add Parameter',
+    customHostParamKey: 'Parameter Name',
+    customHostParamValue: 'Parameter Value',
+    customHostParamKeyPlaceholder: 'e.g., token',
+    customHostParamValuePlaceholder: 'e.g., your-token or $filename$',
+    customHostParamDescription:
+      'Use $filename$ as placeholder to auto-replace with current filename',
+    customHostResponsePattern: 'Response Pattern',
+    customHostResponsePatternPlaceholder: 'e.g., $json:data.url$ or $text$',
+    customHostResponsePatternDescription:
+      'Supported formats: $json:path$ (e.g., $json:data.url$) or $text$ (plain text)',
+    customHostUseProxy: 'Use Proxy',
+    customHostUseProxyDescription: 'Upload via proxy server to bypass browser CORS restrictions',
+    customHostUrlRequired: 'Please configure custom image host upload URL',
+    customHostResponsePatternRequired: 'Please configure response pattern',
+
+    // Custom image host error messages
+    customHostUrlNotConfigured: 'Custom image host upload URL not configured',
+    responsePatternNotConfigured: 'Response pattern not configured',
+    failedToParseResponse: 'Failed to parse response',
+    pathNotFound: 'Path not found',
+    failedToParseImageUrl: 'Failed to parse image URL from response',
+
     autoNewlineAfterImage: 'Auto Line Spacing After Image',
     autoNewlineDescription:
       'Automatically add blank lines after inserting images for better formatting',

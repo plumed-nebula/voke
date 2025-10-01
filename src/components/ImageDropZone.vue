@@ -167,6 +167,14 @@ const props = defineProps({
   },
 
   /**
+   * 自定义图床配置
+   */
+  customImageHostConfig: {
+    type: Object,
+    default: () => ({ url: '', urlParams: [], responsePattern: '', useProxy: true }),
+  },
+
+  /**
    * 是否自动显示拖拽区域
    */
   autoShow: {
@@ -316,6 +324,7 @@ async function uploadFiles(files) {
       // 准备上传选项
       const uploadOptions = {
         contentType: props.pixhostContentType, // Pixhost 内容类型
+        customConfig: props.customImageHostConfig, // 自定义图床配置
       }
 
       // 进度回调函数
