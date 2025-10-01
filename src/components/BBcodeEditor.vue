@@ -39,6 +39,7 @@ const props = defineProps({
   /** 图床设置 */
   imageHost: { type: String, default: 'freeimage' },
   imageApiKey: { type: String, default: '' },
+  pixhostContentType: { type: String, default: '0' },
   useDirectImageLink: { type: Boolean, default: true },
   autoNewlineAfterImage: { type: Boolean, default: false },
   imageAlignment: { type: String, default: 'none' },
@@ -1424,6 +1425,7 @@ onBeforeUnmount(() => {
       ref="dropZone"
       :image-host="imageHost"
       :api-key="imageApiKey"
+      :pixhost-content-type="pixhostContentType"
       :auto-show="false"
       @insert-image="insertImageAtCursor"
       @upload-start="handleUploadStart"

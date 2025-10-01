@@ -85,6 +85,7 @@
                 <option value="local">{{ t('localTest') }}</option>
                 <option value="freeimage">{{ t('freeimageHost') }}</option>
                 <option value="sda1">{{ t('sda1Host') }}</option>
+                <option value="pixhost">{{ t('pixhostHost') }}</option>
               </select>
             </div>
             <p class="setting-description">
@@ -128,6 +129,19 @@
                 t('freeimageApiPage')
               }}</a>
               {{ t('getYourApiKey') }}
+            </p>
+          </div>
+
+          <div class="setting-item" v-if="localSettings.imageHost === 'pixhost'">
+            <label class="setting-label">{{ t('pixhostContentType') }}</label>
+            <div class="setting-control">
+              <select v-model="localSettings.pixhostContentType" class="select-input">
+                <option value="0">{{ t('pixhostSafeContent') }}</option>
+                <option value="1">{{ t('pixhostNsfwContent') }}</option>
+              </select>
+            </div>
+            <p class="setting-description">
+              {{ t('pixhostContentTypeDescription') }}
             </p>
           </div>
 
@@ -298,6 +312,7 @@ const resetSettings = () => {
     storageExpiry: 604800000,
     imageHost: 'freeimage',
     freeimageApiKey: '',
+    pixhostContentType: '0',
     autoNewlineAfterImage: false,
     imageAlignment: 'none',
     useAlignParamOnCopy: false,

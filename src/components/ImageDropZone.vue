@@ -159,6 +159,14 @@ const props = defineProps({
   },
 
   /**
+   * Pixhost内容类型 ('0' = Safe Content, '1' = NSFW)
+   */
+  pixhostContentType: {
+    type: String,
+    default: '0',
+  },
+
+  /**
    * 是否自动显示拖拽区域
    */
   autoShow: {
@@ -303,15 +311,26 @@ async function uploadFiles(files) {
         let result = null
         let uploadError = null
 
+        // 准备上传选项
+        const uploadOptions = {
+          contentType: props.pixhostContentType, // Pixhost 内容类型
+        }
+
         // 第一次上传尝试
         try {
-          result = await uploadImage(file, props.imageHost, props.apiKey, (fileProgress) => {
-            // 计算总进度：已完成文件的进度 + 当前文件的进度
-            const completedProgress = (i / files.length) * 100
-            const currentProgress = fileProgress / files.length
-            progress.value = Math.round(completedProgress + currentProgress)
-            emit('upload-progress', progress.value)
-          })
+          result = await uploadImage(
+            file,
+            props.imageHost,
+            props.apiKey,
+            (fileProgress) => {
+              // 计算总进度：已完成文件的进度 + 当前文件的进度
+              const completedProgress = (i / files.length) * 100
+              const currentProgress = fileProgress / files.length
+              progress.value = Math.round(completedProgress + currentProgress)
+              emit('upload-progress', progress.value)
+            },
+            uploadOptions, // 传递上传选项
+          )
 
           // 检查上传结果，如果上传失败则记录错误
           if (!result.success) {
@@ -330,13 +349,19 @@ async function uploadFiles(files) {
           await new Promise((resolve) => setTimeout(resolve, 500))
 
           // 第二次上传尝试（重试）
-          result = await uploadImage(file, props.imageHost, props.apiKey, (fileProgress) => {
-            // 计算总进度：已完成文件的进度 + 当前文件的进度
-            const completedProgress = (i / files.length) * 100
-            const currentProgress = fileProgress / files.length
-            progress.value = Math.round(completedProgress + currentProgress)
-            emit('upload-progress', progress.value)
-          })
+          result = await uploadImage(
+            file,
+            props.imageHost,
+            props.apiKey,
+            (fileProgress) => {
+              // 计算总进度：已完成文件的进度 + 当前文件的进度
+              const completedProgress = (i / files.length) * 100
+              const currentProgress = fileProgress / files.length
+              progress.value = Math.round(completedProgress + currentProgress)
+              emit('upload-progress', progress.value)
+            },
+            uploadOptions, // 传递上传选项
+          )
 
           // 检查重试结果
           if (!result.success) {

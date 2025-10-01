@@ -27,6 +27,14 @@ const IMAGE_HOSTS = {
     supportedFormats: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico'],
     requiresApiKey: false,
   },
+  PIXHOST: {
+    name: 'PiXhost.to',
+    id: 'pixhost',
+    uploadUrl: 'https://api.pixhost.to/images',
+    maxSize: 10 * 1024 * 1024, // 10MB
+    supportedFormats: ['jpg', 'jpeg', 'png', 'gif'],
+    requiresApiKey: false,
+  },
   LOCAL: {
     name: () => t('localTest'),
     id: 'local',
@@ -233,6 +241,80 @@ async function uploadToSDA1Proxy(file, onProgress) {
 }
 
 /**
+ * 上传到 PiXhost.to (通过代理)
+ * @param {File} file - 图片文件
+ * @param {Function} onProgress - 进度回调
+ * @param {Object} options - 上传选项 (例如: {contentType: '0'})
+ * @returns {Promise<Object>} 上传结果
+ */
+async function uploadToPixhostProxy(file, onProgress, options = {}) {
+  const hostConfig = IMAGE_HOSTS.PIXHOST
+  const validation = validateImageFile(file, hostConfig)
+  if (!validation.valid) {
+    throw new Error(validation.errors.join('; '))
+  }
+
+  try {
+    onProgress?.(10)
+
+    // 构建代理 URL
+    const proxyUrl = buildProxyUrl(hostConfig.uploadUrl)
+
+    // 从 options 中获取 contentType，默认为 '0' (Safe Content)
+    const contentType = options.contentType || '0'
+
+    // 准备表单数据
+    const formData = new FormData()
+    formData.append('img', file)
+    formData.append('content_type', contentType) // 0 for safe content, 1 for NSFW
+    formData.append('max_th_size', '350') // thumbnail size (150-500)
+
+    onProgress?.(50)
+
+    // 发送请求
+    const response = await fetch(proxyUrl, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        Accept: 'application/json',
+      },
+      // 不设置 Content-Type，让浏览器自动设置 multipart boundary
+    })
+
+    onProgress?.(90)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`${t('uploadFailedHttp')}: HTTP ${response.status} - ${errorText}`)
+    }
+
+    const data = await response.json()
+    onProgress?.(100)
+
+    // 检查响应格式 - Pixhost返回 {name: "...", show_url: "...", th_url: "..."}
+    // 注意：show_url 是展示页面，th_url 才是图片直链
+    if (data.th_url) {
+      return {
+        success: true,
+        url: data.th_url, // 使用 th_url 作为图片直链
+        showUrl: data.show_url || null, // 展示页面链接（可选）
+        host: 'pixhost',
+      }
+    } else {
+      throw new Error(
+        `${t('pixhostUploadFailed')}: ${data.error || data.message || t('unknownError')}`,
+      )
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+      host: 'pixhost',
+    }
+  }
+}
+
+/**
  * 本地测试上传 (生成 Base64 预览)
  * @param {File} file - 图片文件
  * @param {Function} onProgress - 进度回调
@@ -274,9 +356,10 @@ async function uploadToLocal(file, onProgress) {
  * @param {string} host - 图床类型
  * @param {string} apiKey - API 密钥
  * @param {Function} onProgress - 进度回调
+ * @param {Object} options - 额外选项 (例如: {contentType: '0'} for Pixhost)
  * @returns {Promise<Object>} 上传结果
  */
-export async function uploadImage(file, host = 'freeimage', apiKey = '', onProgress) {
+export async function uploadImage(file, host = 'freeimage', apiKey = '', onProgress, options = {}) {
   if (!file) {
     throw new Error(t('pleaseSelectImageFile'))
   }
@@ -287,6 +370,8 @@ export async function uploadImage(file, host = 'freeimage', apiKey = '', onProgr
         return await uploadToFreeImageProxy(file, apiKey, onProgress)
       case 'sda1':
         return await uploadToSDA1Proxy(file, onProgress)
+      case 'pixhost':
+        return await uploadToPixhostProxy(file, onProgress, options)
       case 'local':
         return await uploadToLocal(file, onProgress)
       default:
@@ -370,6 +455,12 @@ export function getSupportedHosts() {
       description: t('viaProxy'),
     },
     {
+      id: 'pixhost',
+      name: 'PiXhost.to',
+      requiresApiKey: false,
+      description: t('viaProxy'),
+    },
+    {
       id: 'local',
       name: t('localTest'),
       requiresApiKey: false,
@@ -387,6 +478,7 @@ export function getHostConfig(hostId) {
   const configs = {
     freeimage: IMAGE_HOSTS.FREEIMAGE,
     sda1: IMAGE_HOSTS.SDA1,
+    pixhost: IMAGE_HOSTS.PIXHOST,
     local: IMAGE_HOSTS.LOCAL,
   }
   return configs[hostId] || null

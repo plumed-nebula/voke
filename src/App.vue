@@ -452,6 +452,7 @@ onMounted(() => {
         :options="{ format: 'bbcode' }"
         :image-host="settings.imageHost"
         :image-api-key="settings.freeimageApiKey"
+        :pixhost-content-type="settings.pixhostContentType"
         :auto-newline-after-image="settings.autoNewlineAfterImage"
         :image-alignment="settings.imageAlignment"
         :use-align-param-on-copy="settings.useAlignParamOnCopy"

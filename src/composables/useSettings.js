@@ -16,6 +16,7 @@ const DEFAULT_SETTINGS = {
   autoSaveEnabled: false,
   imageHost: 'local', // 默认使用本地测试
   freeimageApiKey: '',
+  pixhostContentType: '0', // Pixhost内容类型：'0' = Safe Content, '1' = NSFW
   autoNewlineAfterImage: false, // 图片插入后自动隔行
   imageAlignment: 'none', // 图片排版方式：left, right, justify, none
   useAlignParamOnCopy: false, // 复制时使用align参数格式
