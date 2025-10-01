@@ -279,6 +279,11 @@ function copyContentToClipboard(content) {
   }
 }
 
+function trimTrailingNewlines(content) {
+  if (typeof content !== 'string') return content
+  return content.replace(/(?:\r?\n)+$/u, '')
+}
+
 /**
  * 回退复制方法（用于不支持现代Clipboard API的浏览器）
  * @param {String} text 要复制的文本
@@ -310,49 +315,81 @@ function fallbackCopyText(text) {
 // ===== 图片上传处理 =====
 
 /**
- * 在光标位置插入图片BBCode
- * @param {string} bbcode - 图片BBCode字符串
- * @param {Object} uploadResult - 上传结果对象
+ * 在光标位置批量插入图片BBCode
+ * @param {Array} items - 包含bbcode和相关信息的数组
  */
-function insertImageAtCursor(bbcode, uploadResult) {
+function insertImagesAtCursor(items) {
   if (!editorInstance.value) return
 
-  // 检查上传结果，如果上传失败则不插入
-  if (uploadResult && uploadResult.success === false) {
-    return
-  }
+  const list = Array.isArray(items) ? items : [items]
+  const validItems = list
+    .map((item) => {
+      if (!item) return null
+      if (typeof item === 'string') {
+        return { bbcode: item }
+      }
+      if (typeof item.bbcode === 'string' && item.bbcode.trim() !== '') {
+        return item
+      }
+      return null
+    })
+    .filter(Boolean)
 
-  // 检查BBCode是否有效
-  if (!bbcode || bbcode.trim() === '') {
-    return
-  }
+  if (!validItems.length) return
 
   try {
-    // 创建格式化选项
     const formatOptions = mergeFormatOptions(getDefaultImageFormatOptions(), {
       autoNewline: props.autoNewlineAfterImage,
       alignment: props.imageAlignment,
     })
 
-    // 格式化BBCode
-    const formattedBBCode = formatImageBBCode(bbcode, formatOptions)
+    const formattedParts = []
+    const insertedItems = []
 
-    // 获取当前光标位置并插入格式化后的BBCode
-    editorInstance.value.insert(formattedBBCode)
+    validItems.forEach((item) => {
+      const formattedBBCode = formatImageBBCode(item.bbcode, formatOptions)
+      if (!formattedBBCode || formattedBBCode.trim() === '') {
+        return
+      }
+      formattedParts.push(formattedBBCode)
+      insertedItems.push({
+        formattedBBCode,
+        uploadResult: item.uploadResult,
+        source: item.source,
+      })
+    })
 
-    // 触发内容更新
-    const newContent = getSafeEditorContent()
+    if (!formattedParts.length) return
+
+    editorInstance.value.insert(formattedParts.join(''))
+
+    let newContent = getSafeEditorContent()
+    const trimmedContent = trimTrailingNewlines(newContent)
+    if (trimmedContent !== newContent) {
+      newContent = trimmedContent
+    }
+
+    if (newContent && newContent.trim() !== '') {
+      lastValidContent = newContent
+      lastContentUpdateTime = Date.now()
+    }
+
     emit('update:value', newContent)
 
-    // 发射图片插入成功事件
-    emit('image-inserted', {
-      bbcode: formattedBBCode,
-      uploadResult,
-      position: editorInstance.value.getRangeHelper().selectedRange(),
+    const rangeHelper = editorInstance.value.getRangeHelper?.()
+    const position = rangeHelper?.selectedRange ? rangeHelper.selectedRange() : null
+
+    insertedItems.forEach((item) => {
+      emit('image-inserted', {
+        bbcode: item.formattedBBCode,
+        uploadResult: item.uploadResult,
+        source: item.source,
+        position,
+      })
     })
   } catch (error) {
     console.error(t('insertImageFailed'), error)
-    showCopyNotification(t('imageInsertFailedManual') + ': ' + bbcode)
+    showCopyNotification(t('imageInsertFailedManual'))
   }
 }
 
@@ -1440,7 +1477,7 @@ onBeforeUnmount(() => {
       :pixhost-content-type="pixhostContentType"
       :custom-image-host-config="customImageHostConfig"
       :auto-show="false"
-      @insert-image="insertImageAtCursor"
+      @insert-images="insertImagesAtCursor"
       @upload-start="handleUploadStart"
       @upload-progress="handleUploadProgress"
       @upload-success="handleUploadSuccess"

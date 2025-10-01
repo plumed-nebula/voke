@@ -191,7 +191,7 @@ const emit = defineEmits([
   'upload-success', // 上传成功
   'upload-error', // 上传失败
   'upload-canceled', // 上传取消
-  'insert-image', // 请求插入图片
+  'insert-images', // 批量插入图片
 ])
 
 // ===== 响应式数据 =====
@@ -423,6 +423,7 @@ async function uploadFiles(files) {
 
     // 执行并发上传
     const results = await uploadWithConcurrencyLimit()
+    const itemsForInsertion = []
 
     // 按顺序处理结果并发射事件
     for (const result of results) {
@@ -431,15 +432,23 @@ async function uploadFiles(files) {
       uploadResults.value.push(result)
 
       if (result.success) {
-        // 生成BBCode并发射插入事件
+        // 生成BBCode并收集到插入队列
         const bbcode = generateImageBBCode(result.result.url)
-        emit('insert-image', bbcode, result.result)
+        itemsForInsertion.push({
+          bbcode,
+          uploadResult: result.result,
+          source: 'upload',
+        })
         emit('upload-success', result.result)
       } else if (files.length === 1) {
         // 单个文件上传失败，立即显示错误
         showError(`${result.file.name}: ${result.error.message}`)
         emit('upload-error', result.error)
       }
+    }
+
+    if (itemsForInsertion.length) {
+      emitInsertImages(itemsForInsertion)
     }
 
     // 检查上传结果
@@ -539,6 +548,11 @@ function clearError() {
   }
 }
 
+function emitInsertImages(items) {
+  if (!items || !items.length) return
+  emit('insert-images', items)
+}
+
 function cancelUpload() {
   canCancel.value = false
   isUploading.value = false
@@ -629,9 +643,15 @@ function insertImageLink() {
       }
     }
 
-    // 生成BBCode并发射插入事件
+    // 生成BBCode并缓存，统一发射插入事件
     const bbcode = generateImageBBCode(url)
-    emit('insert-image', bbcode, { url, source: 'link' })
+    emitInsertImages([
+      {
+        bbcode,
+        source: 'link',
+        url,
+      },
+    ])
 
     // 清理状态并隐藏整个drop zone
     hideLinkInput()
@@ -693,6 +713,7 @@ async function processBatchLinks(urls) {
 
   // 插入所有有效的图片链接
   try {
+    const itemsForInsertion = []
     for (let i = 0; i < validUrls.length; i++) {
       const url = validUrls[i]
       currentFileIndex.value = i
@@ -706,12 +727,17 @@ async function processBatchLinks(urls) {
         continue
       }
 
-      // 生成BBCode并发射插入事件
+      // 生成BBCode并缓存在插入队列
       const bbcode = generateImageBBCode(url)
-      emit('insert-image', bbcode, { url, source: 'batch-link' })
+      itemsForInsertion.push({
+        bbcode,
+        source: 'batch-link',
+        url,
+      })
+    }
 
-      // 添加小延迟避免过快插入
-      await new Promise((resolve) => setTimeout(resolve, 100))
+    if (itemsForInsertion.length) {
+      emitInsertImages(itemsForInsertion)
     }
 
     progress.value = 100

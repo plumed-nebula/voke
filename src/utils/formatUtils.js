@@ -23,36 +23,16 @@ export function formatImageBBCode(bbcode, options = {}) {
     return bbcode
   }
 
-  let formattedCode = bbcode
+  const alignment = options.alignment && options.alignment !== 'none' ? options.alignment : null
+  const sanitizedBase = bbcode.replace(/\s+$/u, '')
+  const outerNewline = options.autoNewline ? '\n\n' : '\n'
 
-  // 添加图片排版
-  if (options.alignment && options.alignment !== 'none') {
-    // 将基础的[img]url[/img]转换为带排版的格式
-    formattedCode = formattedCode.replace(
-      /(\[img\])([^[\]]+)(\[\/img\])/,
-      `[${options.alignment}]$1$2$3[/${options.alignment}]`,
-    )
+  if (alignment) {
+    const block = `[${alignment}]${sanitizedBase}[/${alignment}]`
+    return block.endsWith('\n') ? block : `${block}${outerNewline}`
   }
 
-  // 在图片后添加换行
-  if (options.autoNewline) {
-    // 如果BBCode末尾没有换行符，则添加
-    if (!formattedCode.endsWith('\n')) {
-      formattedCode += '\n'
-    }
-
-    // 添加额外的换行来创建空行（双换行）
-    if (!formattedCode.endsWith('\n\n')) {
-      formattedCode += '\n'
-    }
-  } else {
-    // 即使不启用自动隔行，也添加一个基本的换行符
-    if (!formattedCode.endsWith('\n')) {
-      formattedCode += '\n'
-    }
-  }
-
-  return formattedCode
+  return sanitizedBase.endsWith('\n') ? sanitizedBase : `${sanitizedBase}${outerNewline}`
 }
 
 /**
