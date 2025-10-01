@@ -296,109 +296,140 @@ async function uploadFiles(files) {
   emit('upload-start', files)
 
   try {
-    // 依次上传每个文件
-    for (let i = 0; i < files.length; i++) {
+    // 并发上传配置
+    const MAX_CONCURRENT = 3 // 最多同时上传3个文件
+    const fileProgresses = new Array(files.length).fill(0) // 跟踪每个文件的进度
+
+    /**
+     * 上传单个文件
+     * @param {File} file - 文件对象
+     * @param {number} index - 文件索引
+     * @returns {Promise<Object>} 上传结果
+     */
+    const uploadSingleFile = async (file, index) => {
       if (!canCancel.value) {
-        // 上传被取消
-        break
+        throw new Error(t('uploadCanceled'))
       }
 
-      const file = files[i]
-      currentFileIndex.value = i
       currentFileName.value = file.name
 
+      // 准备上传选项
+      const uploadOptions = {
+        contentType: props.pixhostContentType, // Pixhost 内容类型
+      }
+
+      // 进度回调函数
+      const onProgress = (fileProgress) => {
+        fileProgresses[index] = fileProgress
+        // 计算总进度：所有文件进度的平均值
+        const totalProgress = fileProgresses.reduce((sum, p) => sum + p, 0) / files.length
+        progress.value = Math.round(totalProgress)
+        emit('upload-progress', progress.value)
+      }
+
+      let result = null
+      let uploadError = null
+
+      // 第一次上传尝试
       try {
-        let result = null
-        let uploadError = null
+        result = await uploadImage(file, props.imageHost, props.apiKey, onProgress, uploadOptions)
 
-        // 准备上传选项
-        const uploadOptions = {
-          contentType: props.pixhostContentType, // Pixhost 内容类型
+        // 检查上传结果
+        if (!result.success) {
+          uploadError = new Error(result.error || t('uploadFailed'))
+          throw uploadError
+        }
+      } catch (firstAttemptError) {
+        uploadError = firstAttemptError
+
+        // 如果上传被取消，不进行重试
+        if (!canCancel.value) {
+          throw uploadError
         }
 
-        // 第一次上传尝试
-        try {
-          result = await uploadImage(
-            file,
-            props.imageHost,
-            props.apiKey,
-            (fileProgress) => {
-              // 计算总进度：已完成文件的进度 + 当前文件的进度
-              const completedProgress = (i / files.length) * 100
-              const currentProgress = fileProgress / files.length
-              progress.value = Math.round(completedProgress + currentProgress)
-              emit('upload-progress', progress.value)
-            },
-            uploadOptions, // 传递上传选项
-          )
+        // 等待500ms后进行重试
+        await new Promise((resolve) => setTimeout(resolve, 500))
 
-          // 检查上传结果，如果上传失败则记录错误
-          if (!result.success) {
-            uploadError = new Error(result.error || t('uploadFailed'))
-            throw uploadError
-          }
-        } catch (firstAttemptError) {
-          uploadError = firstAttemptError
+        // 第二次上传尝试（重试）
+        result = await uploadImage(file, props.imageHost, props.apiKey, onProgress, uploadOptions)
 
-          // 如果上传被取消，不进行重试
-          if (!canCancel.value) {
-            throw uploadError
-          }
+        // 检查重试结果
+        if (!result.success) {
+          throw new Error(result.error || t('uploadFailed'))
+        }
+      }
 
-          // 等待500ms后进行重试
-          await new Promise((resolve) => setTimeout(resolve, 500))
+      // 返回成功结果
+      return {
+        index,
+        file,
+        success: true,
+        result,
+        error: null,
+      }
+    }
 
-          // 第二次上传尝试（重试）
-          result = await uploadImage(
-            file,
-            props.imageHost,
-            props.apiKey,
-            (fileProgress) => {
-              // 计算总进度：已完成文件的进度 + 当前文件的进度
-              const completedProgress = (i / files.length) * 100
-              const currentProgress = fileProgress / files.length
-              progress.value = Math.round(completedProgress + currentProgress)
-              emit('upload-progress', progress.value)
-            },
-            uploadOptions, // 传递上传选项
-          )
+    /**
+     * 使用并发限制上传所有文件
+     */
+    const uploadWithConcurrencyLimit = async () => {
+      const results = new Array(files.length) // 用于保存结果，保持顺序
+      let currentIndex = 0 // 当前正在处理的文件索引
 
-          // 检查重试结果
-          if (!result.success) {
-            throw new Error(result.error || t('uploadFailed'))
+      // 创建并发上传任务
+      const runUploadTask = async () => {
+        while (currentIndex < files.length && canCancel.value) {
+          const index = currentIndex++
+          currentFileIndex.value = index
+
+          try {
+            const result = await uploadSingleFile(files[index], index)
+            results[index] = result
+          } catch (error) {
+            console.error(`上传文件 ${files[index].name} 失败:`, error)
+            results[index] = {
+              index,
+              file: files[index],
+              success: false,
+              result: null,
+              error,
+            }
           }
         }
+      }
 
-        // 记录成功结果
-        uploadResults.value.push({
-          file: file,
-          success: true,
-          result: result,
-          error: null,
-        })
+      // 创建并发工作线程（最多MAX_CONCURRENT个）
+      const workers = []
+      const workerCount = Math.min(MAX_CONCURRENT, files.length)
 
+      for (let i = 0; i < workerCount; i++) {
+        workers.push(runUploadTask())
+      }
+
+      // 等待所有工作线程完成
+      await Promise.all(workers)
+
+      return results
+    }
+
+    // 执行并发上传
+    const results = await uploadWithConcurrencyLimit()
+
+    // 按顺序处理结果并发射事件
+    for (const result of results) {
+      if (!result) continue
+
+      uploadResults.value.push(result)
+
+      if (result.success) {
         // 生成BBCode并发射插入事件
-        const bbcode = generateImageBBCode(result.url)
-        emit('insert-image', bbcode, result)
-        emit('upload-success', result)
-      } catch (error) {
-        console.error(`上传文件 ${file.name} 失败:`, error)
-
-        // 记录失败结果
-        uploadResults.value.push({
-          file: file,
-          success: false,
-          result: null,
-          error: error,
-        })
-
-        // 对于批量上传，不立即显示错误，而是继续上传其他文件
-        if (files.length === 1) {
-          showError(`${file.name}: ${error.message}`)
-          emit('upload-error', error)
-          // 不要直接return，让它继续到finally块
-          break
-        }
+        const bbcode = generateImageBBCode(result.result.url)
+        emit('insert-image', bbcode, result.result)
+        emit('upload-success', result.result)
+      } else if (files.length === 1) {
+        // 单个文件上传失败，立即显示错误
+        showError(`${result.file.name}: ${result.error.message}`)
+        emit('upload-error', result.error)
       }
     }
 
@@ -421,7 +452,7 @@ async function uploadFiles(files) {
         .join(', ')
       showError(`${t('partialUploadFailed')}: ${failedFiles}`)
     } else {
-      // 全部成功，隐藏拖拽区域
+      // 全部成功,隐藏拖拽区域
       setTimeout(() => {
         if (!props.autoShow) {
           showDropZone.value = false

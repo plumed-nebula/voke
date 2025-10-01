@@ -292,13 +292,31 @@ async function uploadToPixhostProxy(file, onProgress, options = {}) {
     onProgress?.(100)
 
     // 检查响应格式 - Pixhost返回 {name: "...", show_url: "...", th_url: "..."}
-    // 注意：show_url 是展示页面，th_url 才是图片直链
-    if (data.th_url) {
-      return {
-        success: true,
-        url: data.th_url, // 使用 th_url 作为图片直链
-        showUrl: data.show_url || null, // 展示页面链接（可选）
-        host: 'pixhost',
+    // show_url 格式: https://pixhost.to/show/9100/646280537_1.png
+    // 需要转换为真实图片链接: https://img1.pixhost.to/images/9100/646280537_1.png
+    if (data.show_url) {
+      // 从 show_url 提取路径信息并构建真实图片 URL
+      // 示例: https://pixhost.to/show/9100/646280537_1.png
+      // 提取: /show/9100/646280537_1.png -> 9100/646280537_1.png
+      const showUrl = data.show_url
+      const match = showUrl.match(/\/show\/(.+)$/)
+
+      if (match && match[1]) {
+        const imagePath = match[1] // 例如: 9100/646280537_1.png
+        // 构建真实图片URL: https://img[X].pixhost.to/images/{path}
+        // 根据 Pixhost 的分布式存储，img 后面的数字通常是 1-4
+        // 我们使用 img1 作为默认，也可以根据路径哈希来选择
+        const imageUrl = `https://img1.pixhost.to/images/${imagePath}`
+
+        return {
+          success: true,
+          url: imageUrl, // 真实图片直链
+          showUrl: showUrl, // 展示页面链接
+          thumbnailUrl: data.th_url || null, // 缩略图链接
+          host: 'pixhost',
+        }
+      } else {
+        throw new Error(`${t('pixhostUploadFailed')}: ${t('invalidResponseFormat')}`)
       }
     } else {
       throw new Error(
