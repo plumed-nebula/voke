@@ -272,6 +272,59 @@
             </div>
             <p class="setting-description">{{ t('imageAlignmentDescription') }}</p>
           </div>
+
+          <div class="setting-item">
+            <label class="setting-label">{{ t('enableImageCompression') }}</label>
+            <div class="setting-control">
+              <label class="checkbox-label">
+                <input
+                  type="checkbox"
+                  v-model="localSettings.enableImageCompression"
+                  class="checkbox-input"
+                />
+                <span class="checkbox-custom"></span>
+                {{ t('enableImageCompression') }}
+              </label>
+            </div>
+            <p class="setting-description">{{ t('enableImageCompressionDescription') }}</p>
+          </div>
+
+          <div
+            class="setting-item"
+            :class="{ 'is-disabled': !localSettings.enableImageCompression }"
+          >
+            <label class="setting-label">{{ t('imageCompressionQuality') }}</label>
+            <div class="setting-control slider-control">
+              <input
+                type="range"
+                min="10"
+                max="100"
+                step="1"
+                class="range-input"
+                v-model.number="localSettings.imageCompressionQuality"
+                :disabled="!localSettings.enableImageCompression"
+              />
+              <span class="range-value">{{ localSettings.imageCompressionQuality }}%</span>
+            </div>
+            <p class="setting-description">{{ t('imageCompressionQualityDescription') }}</p>
+          </div>
+
+          <div class="setting-item" :class="{ 'is-disabled': webpOptionDisabled }">
+            <label class="setting-label">{{ t('convertToWebp') }}</label>
+            <div class="setting-control">
+              <label class="checkbox-label">
+                <input
+                  type="checkbox"
+                  v-model="localSettings.enableConvertToWebp"
+                  class="checkbox-input"
+                  :disabled="webpOptionDisabled"
+                />
+                <span class="checkbox-custom"></span>
+                {{ t('convertToWebp') }}
+              </label>
+            </div>
+            <p class="setting-description">{{ webpSupportDescription }}</p>
+          </div>
         </div>
 
         <!-- 导出选项 -->
@@ -322,8 +375,9 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch, isReactive, toRaw, isRef, unref } from 'vue'
 import { useTranslation } from '../utils/i18n.js'
+import { getHostConfig } from '../utils/imageUploadProxy.js'
 
 // 国际化
 const { t } = useTranslation()
@@ -371,18 +425,148 @@ const emit = defineEmits(['close', 'save', 'clear-data'])
 /**
  * 本地设置状态
  */
-const localSettings = ref({
-  ...props.settings,
-  // 确保 customImageHost 存在
-  customImageHost: props.settings.customImageHost || {
-    url: '',
-    urlParams: [],
-    responsePattern: '$json:data.url$',
-    useProxy: true,
-  },
-})
+const deepClone = (value, seen = new WeakMap()) => {
+  const unwrapped = isRef(value) ? unref(value) : value
+
+  if (unwrapped === null || typeof unwrapped !== 'object') {
+    return unwrapped
+  }
+
+  if (unwrapped instanceof Date) {
+    return new Date(unwrapped.getTime())
+  }
+
+  if (unwrapped instanceof File || unwrapped instanceof Blob) {
+    return unwrapped
+  }
+
+  if (unwrapped instanceof RegExp) {
+    return new RegExp(unwrapped.source, unwrapped.flags)
+  }
+
+  const raw = isReactive(unwrapped) ? toRaw(unwrapped) : unwrapped
+
+  if (seen.has(raw)) {
+    return seen.get(raw)
+  }
+
+  if (Array.isArray(raw)) {
+    const result = []
+    seen.set(raw, result)
+    raw.forEach((item) => {
+      result.push(deepClone(item, seen))
+    })
+    return result
+  }
+
+  const plainObject = {}
+  seen.set(raw, plainObject)
+  for (const [key, val] of Object.entries(raw)) {
+    plainObject[key] = deepClone(val, seen)
+  }
+  return plainObject
+}
+
+const normalizeSettings = (settings = {}) => {
+  const quality = Number(settings.imageCompressionQuality)
+  const clampedQuality = Number.isFinite(quality) ? Math.min(100, Math.max(10, quality)) : 80
+
+  return {
+    enableImageCompression:
+      typeof settings.enableImageCompression === 'boolean'
+        ? settings.enableImageCompression
+        : false,
+    imageCompressionQuality: clampedQuality,
+    enableConvertToWebp:
+      typeof settings.enableConvertToWebp === 'boolean' ? settings.enableConvertToWebp : false,
+  }
+}
+
+const mergeSettings = (source = {}) => {
+  const compressionDefaults = normalizeSettings(source)
+  return {
+    ...deepClone(source),
+    ...compressionDefaults,
+    customImageHost: source.customImageHost || {
+      url: '',
+      urlParams: [],
+      responsePattern: '$json:data.url$',
+      useProxy: true,
+    },
+  }
+}
+
+const localSettings = ref(mergeSettings(props.settings))
 const clearing = ref(false)
 const showApiKey = ref(false)
+
+const currentHostConfig = computed(() => getHostConfig(localSettings.value.imageHost) || null)
+const currentHostName = computed(() => {
+  const config = currentHostConfig.value
+  if (!config) return ''
+  if (typeof config.name === 'function') {
+    try {
+      return config.name()
+    } catch {
+      return ''
+    }
+  }
+  return config.name || ''
+})
+
+const hostSupportsWebp = computed(() => {
+  const config = currentHostConfig.value
+  if (!config || !Array.isArray(config.supportedFormats)) {
+    return false
+  }
+  return config.supportedFormats.includes('webp')
+})
+
+const webpOptionDisabled = computed(
+  () => !localSettings.value.enableImageCompression || !hostSupportsWebp.value,
+)
+
+const webpSupportDescription = computed(() => {
+  if (!hostSupportsWebp.value) {
+    return t('webpNotSupportedByHost', {
+      host: currentHostName.value || localSettings.value.imageHost,
+    })
+  }
+  return t('convertToWebpDescription')
+})
+
+watch(
+  () => localSettings.value.imageHost,
+  () => {
+    if (!hostSupportsWebp.value) {
+      localSettings.value.enableConvertToWebp = false
+    }
+  },
+)
+
+watch(
+  () => localSettings.value.enableImageCompression,
+  (enabled) => {
+    if (!enabled) {
+      localSettings.value.enableConvertToWebp = false
+    }
+  },
+)
+
+watch(
+  () => localSettings.value.imageCompressionQuality,
+  (value) => {
+    const numeric = Number(value)
+    if (!Number.isFinite(numeric)) {
+      localSettings.value.imageCompressionQuality = 80
+      return
+    }
+    const clamped = Math.min(100, Math.max(10, Math.round(numeric)))
+    if (clamped !== numeric) {
+      localSettings.value.imageCompressionQuality = clamped
+    }
+  },
+)
 
 /**
  * 监听外部设置变化（仅在面板关闭时更新）
@@ -393,16 +577,7 @@ watch(
   (isVisible) => {
     if (isVisible) {
       // 面板打开时，重新加载外部设置
-      localSettings.value = {
-        ...props.settings,
-        // 确保 customImageHost 存在
-        customImageHost: props.settings.customImageHost || {
-          url: '',
-          urlParams: [],
-          responsePattern: '$json:data.url$',
-          useProxy: true,
-        },
-      }
+      localSettings.value = mergeSettings(props.settings)
     }
   },
 )
@@ -418,7 +593,13 @@ const closeSettings = () => {
  * 保存设置
  */
 const saveSettings = () => {
-  emit('save', { ...localSettings.value })
+  const payload = mergeSettings(localSettings.value)
+  const { imageCompressionQuality } = payload
+  payload.imageCompressionQuality = Math.min(
+    100,
+    Math.max(10, Number(imageCompressionQuality) || 80),
+  )
+  emit('save', payload)
   closeSettings()
 }
 
@@ -426,7 +607,7 @@ const saveSettings = () => {
  * 重置设置
  */
 const resetSettings = () => {
-  localSettings.value = {
+  localSettings.value = mergeSettings({
     autoSaveDelay: 1000,
     storageExpiry: 604800000,
     imageHost: 'freeimage',
@@ -436,13 +617,16 @@ const resetSettings = () => {
     imageAlignment: 'none',
     useAlignParamOnCopy: false,
     autoFormatListOnCopy: false,
+    enableImageCompression: false,
+    imageCompressionQuality: 80,
+    enableConvertToWebp: false,
     customImageHost: {
       url: '',
       urlParams: [],
       responsePattern: '$json:data.url$',
       useProxy: true,
     },
-  }
+  })
 }
 
 /**
@@ -502,6 +686,32 @@ const clearLocalData = async () => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+.slider-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.range-input {
+  flex: 1;
+  accent-color: var(--brand-primary, #2563eb);
+}
+
+.range-value {
+  min-width: 48px;
+  text-align: right;
+  font-weight: 600;
+  color: var(--text-primary, #1f2937);
+}
+
+.setting-item.is-disabled {
+  opacity: 0.6;
+}
+
+.setting-item.is-disabled .setting-control {
+  pointer-events: none;
 }
 
 .settings-header {

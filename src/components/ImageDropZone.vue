@@ -134,7 +134,17 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
-import { uploadImage, generateImageBBCode, isImageFile } from '../utils/imageUploadProxy.js'
+import {
+  uploadImage,
+  generateImageBBCode,
+  isImageFile,
+  getHostConfig,
+} from '../utils/imageUploadProxy.js'
+import {
+  enqueueImageCompression,
+  getCompressionProgressWeight,
+  clearCompressionQueue,
+} from '../utils/imageCompressionQueue.js'
 import { useTranslation } from '../utils/i18n.js'
 
 // 国际化
@@ -172,6 +182,21 @@ const props = defineProps({
   customImageHostConfig: {
     type: Object,
     default: () => ({ url: '', urlParams: [], responsePattern: '', useProxy: true }),
+  },
+
+  enableImageCompression: {
+    type: Boolean,
+    default: false,
+  },
+
+  imageCompressionQuality: {
+    type: Number,
+    default: 80,
+  },
+
+  enableConvertToWebp: {
+    type: Boolean,
+    default: false,
   },
 
   /**
@@ -305,8 +330,34 @@ async function uploadFiles(files) {
 
   try {
     // 并发上传配置
-    const MAX_CONCURRENT = 3 // 最多同时上传3个文件
+    const MAX_CONCURRENT = 3 // 最多同时处理3个文件
+    const hostConfig = getHostConfig(props.imageHost) || null
+    const supportsWebp = Array.isArray(hostConfig?.supportedFormats)
+      ? hostConfig.supportedFormats.includes('webp')
+      : false
+    const compressionSettings = {
+      enableImageCompression: props.enableImageCompression,
+      imageCompressionQuality: props.imageCompressionQuality,
+      enableConvertToWebp: props.enableConvertToWebp && supportsWebp,
+    }
+    const COMPRESSION_WEIGHT = Math.min(100, Math.max(0, getCompressionProgressWeight()))
+    const UPLOAD_WEIGHT = Math.max(1, 100 - COMPRESSION_WEIGHT)
     const fileProgresses = new Array(files.length).fill(0) // 跟踪每个文件的进度
+
+    const updateAggregatedProgress = () => {
+      if (!files.length) {
+        progress.value = 0
+        return
+      }
+      const totalProgress = fileProgresses.reduce((sum, p) => sum + p, 0) / files.length
+      progress.value = Math.round(totalProgress)
+      emit('upload-progress', progress.value)
+    }
+
+    const setFileProgress = (index, value) => {
+      fileProgresses[index] = Math.max(0, Math.min(100, value))
+      updateAggregatedProgress()
+    }
 
     /**
      * 上传单个文件
@@ -319,7 +370,45 @@ async function uploadFiles(files) {
         throw new Error(t('uploadCanceled'))
       }
 
+      setFileProgress(index, 0)
       currentFileName.value = file.name
+
+      let compressionResult
+      try {
+        compressionResult = await enqueueImageCompression(file, {
+          settings: compressionSettings,
+          hostConfig,
+          onProgress: (percent) => {
+            const weighted = Math.round(
+              (Math.max(0, Math.min(100, percent)) / 100) * COMPRESSION_WEIGHT,
+            )
+            setFileProgress(index, weighted)
+          },
+        })
+      } catch (compressionError) {
+        console.warn(
+          '[ImageDropZone] compression failed, fallback to original file:',
+          compressionError,
+        )
+        compressionResult = {
+          originalFile: file,
+          processedFile: file,
+          wasCompressed: false,
+          skipped: true,
+          reason: 'error',
+          error: compressionError,
+          ratio: 1,
+        }
+        setFileProgress(index, COMPRESSION_WEIGHT)
+      }
+
+      if (!canCancel.value) {
+        throw new Error(t('uploadCanceled'))
+      }
+
+      const processedFile = compressionResult?.processedFile || file
+      const originalFile = compressionResult?.originalFile || file
+      currentFileName.value = processedFile.name
 
       // 准备上传选项
       const uploadOptions = {
@@ -327,13 +416,11 @@ async function uploadFiles(files) {
         customConfig: props.customImageHostConfig, // 自定义图床配置
       }
 
-      // 进度回调函数
-      const onProgress = (fileProgress) => {
-        fileProgresses[index] = fileProgress
-        // 计算总进度：所有文件进度的平均值
-        const totalProgress = fileProgresses.reduce((sum, p) => sum + p, 0) / files.length
-        progress.value = Math.round(totalProgress)
-        emit('upload-progress', progress.value)
+      const onUploadProgress = (fileProgress) => {
+        const normalized =
+          COMPRESSION_WEIGHT +
+          Math.round((Math.max(0, Math.min(100, fileProgress)) / 100) * UPLOAD_WEIGHT)
+        setFileProgress(index, normalized)
       }
 
       let result = null
@@ -341,15 +428,29 @@ async function uploadFiles(files) {
 
       // 第一次上传尝试
       try {
-        result = await uploadImage(file, props.imageHost, props.apiKey, onProgress, uploadOptions)
+        result = await uploadImage(
+          processedFile,
+          props.imageHost,
+          props.apiKey,
+          onUploadProgress,
+          uploadOptions,
+        )
 
         // 检查上传结果
         if (!result.success) {
           uploadError = new Error(result.error || t('uploadFailed'))
+          uploadError.compression = compressionResult
+          uploadError.originalFile = originalFile
+          uploadError.processedFile = processedFile
           throw uploadError
         }
       } catch (firstAttemptError) {
         uploadError = firstAttemptError
+        if (uploadError && typeof uploadError === 'object') {
+          uploadError.compression = compressionResult
+          uploadError.originalFile = originalFile
+          uploadError.processedFile = processedFile
+        }
 
         // 如果上传被取消，不进行重试
         if (!canCancel.value) {
@@ -360,18 +461,32 @@ async function uploadFiles(files) {
         await new Promise((resolve) => setTimeout(resolve, 500))
 
         // 第二次上传尝试（重试）
-        result = await uploadImage(file, props.imageHost, props.apiKey, onProgress, uploadOptions)
+        result = await uploadImage(
+          processedFile,
+          props.imageHost,
+          props.apiKey,
+          onUploadProgress,
+          uploadOptions,
+        )
 
         // 检查重试结果
         if (!result.success) {
-          throw new Error(result.error || t('uploadFailed'))
+          const finalError = new Error(result.error || t('uploadFailed'))
+          finalError.compression = compressionResult
+          finalError.originalFile = originalFile
+          finalError.processedFile = processedFile
+          throw finalError
         }
       }
+
+      setFileProgress(index, 100)
 
       // 返回成功结果
       return {
         index,
-        file,
+        file: originalFile,
+        processedFile,
+        compression: compressionResult,
         success: true,
         result,
         error: null,
@@ -396,12 +511,18 @@ async function uploadFiles(files) {
             results[index] = result
           } catch (error) {
             console.error(`上传文件 ${files[index].name} 失败:`, error)
+            const compressionMeta = error?.compression || null
+            const originalFile = compressionMeta?.originalFile || files[index]
+            const processedFile = compressionMeta?.processedFile || files[index]
+            const normalizedError = error?.error || error
             results[index] = {
               index,
-              file: files[index],
+              file: originalFile,
+              processedFile,
+              compression: compressionMeta,
               success: false,
               result: null,
-              error,
+              error: normalizedError,
             }
           }
         }
@@ -438,11 +559,13 @@ async function uploadFiles(files) {
           bbcode,
           uploadResult: result.result,
           source: 'upload',
+          compression: result.compression,
         })
         emit('upload-success', result.result)
       } else if (files.length === 1) {
         // 单个文件上传失败，立即显示错误
-        showError(`${result.file.name}: ${result.error.message}`)
+        const errorMsg = result.error?.message || String(result.error || t('uploadFailed'))
+        showError(`${result.file.name}: ${errorMsg}`)
         emit('upload-error', result.error)
       }
     }
@@ -556,6 +679,7 @@ function emitInsertImages(items) {
 function cancelUpload() {
   canCancel.value = false
   isUploading.value = false
+  clearCompressionQueue()
   resetState()
   emit('upload-canceled')
 }
@@ -563,6 +687,7 @@ function cancelUpload() {
 function resetState(clearErrorState = true) {
   isUploading.value = false
   isBatchProcessing.value = false
+  clearCompressionQueue()
   if (clearErrorState) {
     hasError.value = false
     errorMessage.value = ''

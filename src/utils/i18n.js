@@ -80,6 +80,7 @@ const translations = {
     // 图片上传 - 进度和状态
     uploadingImage: '正在上传图片...',
     uploadFailed: '上传失败',
+    uploadCanceled: '上传已取消',
 
     // 错误消息
     fileSizeExceeded: '文件大小超过限制',
@@ -131,6 +132,13 @@ const translations = {
     pixhostSafeContent: '安全内容 (Safe)',
     pixhostNsfwContent: '成人内容 (NSFW)',
     pixhostContentTypeDescription: '选择上传到 PiXhost 的内容类型分类',
+    enableImageCompression: '启用图片压缩',
+    enableImageCompressionDescription: '上传前压缩图片以减小体积，不会修改原始文件。',
+    imageCompressionQuality: '压缩质量',
+    imageCompressionQualityDescription: '数值越低压缩率越高，但可能影响画质。',
+    convertToWebp: '转换为 WebP',
+    convertToWebpDescription: '将图片转换为 WebP 格式以获得更好的压缩效果。',
+    webpNotSupportedByHost: '当前图床 {host} 暂不支持 WebP 转换。',
 
     // 自定义图床配置
     customHostConfig: '自定义图床配置',
@@ -339,6 +347,7 @@ const translations = {
     // Image upload - progress and status
     uploadingImage: 'Uploading image...',
     uploadFailed: 'Upload Failed',
+    uploadCanceled: 'Upload canceled',
 
     // Error messages
     fileSizeExceeded: 'File size exceeds limit',
@@ -390,6 +399,16 @@ const translations = {
     pixhostSafeContent: 'Safe Content',
     pixhostNsfwContent: 'Adult Content (NSFW)',
     pixhostContentTypeDescription: 'Select content type classification for PiXhost uploads',
+    enableImageCompression: 'Enable Image Compression',
+    enableImageCompressionDescription:
+      'Compress images before upload to reduce file size. Original files stay untouched.',
+    imageCompressionQuality: 'Compression Quality',
+    imageCompressionQualityDescription:
+      'Lower values reduce file size but may impact visual fidelity.',
+    convertToWebp: 'Convert to WebP',
+    convertToWebpDescription:
+      'Convert images to WebP for better compression while staying compatible.',
+    webpNotSupportedByHost: 'Current host {host} does not support WebP conversion yet.',
 
     // Custom image host configuration
     customHostConfig: 'Custom Image Host Configuration',

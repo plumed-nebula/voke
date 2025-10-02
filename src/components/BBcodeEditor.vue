@@ -50,6 +50,9 @@ const props = defineProps({
   useAlignParamOnCopy: { type: Boolean, default: false },
   /** 导出到剪贴板时自动格式化列表 */
   autoFormatListOnCopy: { type: Boolean, default: false },
+  enableImageCompression: { type: Boolean, default: false },
+  imageCompressionQuality: { type: Number, default: 80 },
+  enableConvertToWebp: { type: Boolean, default: false },
 })
 
 /**
@@ -1477,6 +1480,9 @@ onBeforeUnmount(() => {
       :pixhost-content-type="pixhostContentType"
       :custom-image-host-config="customImageHostConfig"
       :auto-show="false"
+      :enable-image-compression="enableImageCompression"
+      :image-compression-quality="imageCompressionQuality"
+      :enable-convert-to-webp="enableConvertToWebp"
       @insert-images="insertImagesAtCursor"
       @upload-start="handleUploadStart"
       @upload-progress="handleUploadProgress"

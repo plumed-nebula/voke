@@ -458,6 +458,9 @@ onMounted(() => {
         :image-alignment="settings.imageAlignment"
         :use-align-param-on-copy="settings.useAlignParamOnCopy"
         :auto-format-list-on-copy="settings.autoFormatListOnCopy"
+        :enable-image-compression="settings.enableImageCompression"
+        :image-compression-quality="settings.imageCompressionQuality"
+        :enable-convert-to-webp="settings.enableConvertToWebp"
         @ready="handleEditorReady"
         @image-inserted="handleImageInserted"
       />

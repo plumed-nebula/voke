@@ -21,6 +21,9 @@ const DEFAULT_SETTINGS = {
   imageAlignment: 'none', // 图片排版方式：left, right, justify, none
   useAlignParamOnCopy: false, // 复制时使用align参数格式
   autoFormatListOnCopy: false, // 导出到剪贴板时自动格式化列表
+  enableImageCompression: false, // 是否启用图片压缩
+  imageCompressionQuality: 80, // 图片压缩质量（1-100）
+  enableConvertToWebp: false, // 是否转换为WebP
 
   // 自定义图床配置
   customImageHost: {
